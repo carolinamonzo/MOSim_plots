@@ -1,0 +1,84 @@
+library(argparser)
+
+parser <- arg_parser("parse")
+parser <- add_argument(parser, "--seed", help = "seed")
+
+args <- parse_args(parser)
+
+s <- args$seed
+set.seed(s)
+
+devtools::load_all("/home/cmonzo/workspace/MOSim")
+library(Seurat)
+library(tidyverse)
+library(pbmcMultiome.SeuratData)
+
+set.seed(001)
+
+## MAKING BIG DATASET FOR EXAMPLE IN PAPER
+omics_types <- c("scRNA-seq", "scATAC-seq")
+
+omicsList <- list()
+
+for (omics in omics_types){
+      # Load data from seurat
+      if(omics == "scRNA-seq"){
+        dat <- pbmcMultiome.SeuratData::pbmc.rna
+        dat <- subset(x = dat, subset = seurat_annotations %in% c("CD4 TEM", 
+                      "cDC", "Memory B", "Treg", "Plasma", "NK", "CD16 Mono"))
+        unique_cell_types <- unique(dat@meta.data$seurat_annotations)
+        extracted_cells <- list()
+        cellnames <- c()
+        for (cell_type in unique_cell_types) {
+          type_cells <- subset(dat, subset = seurat_annotations %in% cell_type)
+          counts <- as.matrix(type_cells@assays[["RNA"]]@counts)
+          extracted_cells[[cell_type]] <- counts
+          cellnames <- append(cellnames, replicate(length(colnames(counts)), cell_type))
+        }
+        dato <- Reduce(cbind, extracted_cells)
+        counts <- as.matrix(dato)
+        
+      } else if (omics == "scATAC-seq"){
+        dat <- pbmcMultiome.SeuratData::pbmc.atac
+        dat <- subset(x = dat, subset = seurat_annotations %in% c("CD4 TEM", 
+                      "cDC", "Memory B", "Treg", "Plasma", "NK", "CD16 Mono"))
+        unique_cell_types <- unique(dat@meta.data$seurat_annotations)
+        extracted_cells <- list()
+        for (cell_type in unique_cell_types) {
+          type_cells <- subset(dat, subset = seurat_annotations %in% cell_type)
+          counts <- as.matrix(type_cells@assays[["ATAC"]]@counts)
+          extracted_cells[[cell_type]] <- counts
+        }
+        dato <- Reduce(cbind, extracted_cells)
+        counts <- as.matrix(dato)
+      }
+      
+      meta <- dat@meta.data$seurat_annotations
+      
+      metadf <- data.frame("meta" = meta, "cell" = colnames(counts))
+      # Sort the metadata according to cell_type
+      metadf <- metadf[order(metadf$meta),]
+      # Sort by celltype
+      counts <- counts[, metadf$cell]
+      omicsList[[omics]] <- counts
+    
+} 
+
+cell_types <- list()
+for (char in unique(cellnames)){
+  char_positions <- which(cellnames == char)
+  cell_types[[char]] <- char_positions
+}
+
+
+#sim <- scMOSim(omicsList, cell_types, numberReps = 5, numberGroups = 3,
+#               diffGenes = list(c(0.3, 0.2), c(0.1, 0.4)), noiseRep = 0.1,
+#               noiseGroup = 0.3, clusters = 14, feature_no = 11200,
+#               regulatorEffect = list(c(0.2, 0.1), c(0.1, 0.3), c(0.1, 0.2)))
+
+sim <- scMOSim(omicsList, cell_types, numberReps = 5, numberGroups = 2,
+               diffGenes = list(c(0.3, 0.2)), noiseRep = 0.1,
+               noiseGroup = 0.3, clusters = 14, feature_no = 11200,
+               regulatorEffect = list(c(0.2, 0.1), c(0.1, 0.3)))
+
+saveRDS(object = sim, file = paste0('~/workspace/mosim_paper/sim_scMOSim_2groups_', s, '.rds'))
