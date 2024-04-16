@@ -70,12 +70,6 @@ for (char in unique(cellnames)){
   cell_types[[char]] <- char_positions
 }
 
-
-#sim <- scMOSim(omicsList, cell_types, numberReps = 5, numberGroups = 3,
-#               diffGenes = list(c(0.3, 0.2), c(0.1, 0.4)), noiseRep = 0.1,
-#               noiseGroup = 0.3, clusters = 14, feature_no = 11200,
-#               regulatorEffect = list(c(0.2, 0.1), c(0.1, 0.3), c(0.1, 0.2)))
-
 sim <- scMOSim(omicsList, cell_types, numberReps = 5, numberGroups = 2,
                diffGenes = list(c(0.3, 0.2)), noiseRep = 0.1,
                noiseGroup = 0.3, clusters = 14, feature_no = 11200,
