@@ -1,0 +1,1121 @@
+---
+title: "Plotting_for_poster"
+output: html_document
+date: "2023-07-06"
+---
+
+```{r}
+devtools::load_all()
+suppressPackageStartupMessages({
+  library(acorde)
+  #library(SymSim)
+  library(tidyverse)
+  library(scater)
+  library(WGCNA)
+  library(Seurat)
+  library(acorde)
+  library(RColorConesa)
+})
+
+omic_list <- sc_omicData(c("scRNA-seq", "scATAC-seq"))
+cell_types <- list('CD4_TEM' = c(1:298), 'cDC' = c(299:496), 'Memory_B' = c(497:867), 
+                   'Treg' = c(868:1029))
+sim <- scMOSim(omic_list, cell_types, numberReps = 5, numberGroups = 3, minFC = 0.25, maxFC = 4, 
+               diffGenes = list(c(0.3, 0.2), c(0.1, 0.4)), noiseRep = 0.3, noiseGroup = 0.9, 
+               numberCells = c(297, 197, 370, 161), mean = NULL, sd = NULL, feature_no = 10000, 
+               clusters = 8)
+
+# # Save sim object
+# saveRDS(sim, "simManyCells.rds")
+
+sim <- readRDS("simManyCells.rds")
+```
+
+```{r RNA cluster patterns}
+# scale the matrix to enhance visualization
+
+st <- "G3R1"
+
+coexpr.scaled <- acorde::scale_isoforms(sim$Group_3$Rep_1$`sim_scRNA-seq`@assays$RNA@counts, 
+                                isoform_col = NULL)
+
+coexpr.scaled[is.na(coexpr.scaled)] <- 0
+
+# create cell-to-cell-type ID table
+ct <- tibble::tibble(Cell = colnames(sim$Group_3$Rep_1$`sim_scRNA-seq`@assays$RNA@counts),
+                            cell_type = rep(names(cell_types), times = lengths(cell_types)))
+
+# compute average-by-cell type cluster patterns
+cluster_patterns <- map(sim$Clusters_list$`Clusters_scRNA-seq`,
+                    ~acorde::calculate_cluster_profile(coexpr.scaled,
+                                               isoform_ids = .,
+                                               id_table = ct,
+                                               isoform_col = "transcript"))
+
+# plot patterns
+library(cowplot)
+
+theme_set(theme_cowplot())
+
+## Select only the clusters that don't have NAs
+
+
+pattern_plots <- map(cluster_patterns,
+                     plot_cluster_profile,
+                     ct_labels = c("CD4_TEM", "cDC", "Memory_B", "Treg"))
+
+plot_grid(plotlist = pattern_plots, 
+          labels = NULL, 
+          ncol = 4)
+
+ggsave(paste0("../test_scMOSim/plots/Lyon_clusters_RNA_", st, "_20230706.pdf"))
+```
+
+
+```{r ATAC cluster patterns}
+
+
+coexpr.scaledATAC <- acorde::scale_isoforms(sim$Group_3$Rep_1$`sim_scATAC-seq`@assays$ATAC@counts, 
+                                isoform_col = NULL)
+
+coexpr.scaledATAC[is.na(coexpr.scaledATAC)] <- 0
+
+# create cell-to-cell-type ID table
+ctATAC <- tibble::tibble(Cell = colnames(sim$Group_3$Rep_1$`sim_scATAC-seq`@assays$ATAC@counts),
+                            cell_type = rep(names(cell_types), times = lengths(cell_types)))
+
+# compute average-by-cell type cluster patterns
+cluster_patternsATAC <- map(sim$Clusters_list$`Clusters_scATAC-seq`,
+                    ~acorde::calculate_cluster_profile(coexpr.scaledATAC,
+                                               isoform_ids = .,
+                                               id_table = ctATAC,
+                                               isoform_col = "transcript"))
+
+
+## Select only the clusters that don't have NAs
+
+
+pattern_plotsATAC <- map(cluster_patternsATAC,
+                     acorde::plot_cluster_profile,
+                     ct_labels = c("CD4_TEM", "cDC", "Memory_B", "Treg"))
+
+plot_grid(plotlist = pattern_plotsATAC, 
+          labels = NULL, 
+          ncol = 4)
+
+ggsave(paste0("../test_scMOSim/plots/Lyon_clusters_ATAC_", st, "_20230706.pdf"))
+```
+
+```{r}
+## Plot with two axes, a gene of cluster 6 regulated by a regulator of cluster 6
+## And a gene of cluster 6 negatively regulated by a regulator of cluster 8
+
+write.csv(as.data.frame(sim$Group_2$Rep_1$`sim_scRNA-seq`@assays$RNA@counts), "../test_scMOSim/analysis/RNA_sim_G2R1.csv")
+write.csv(as.data.frame(sim$Group_1$Rep_1$`sim_scRNA-seq`@assays$RNA@counts), "../test_scMOSim/analysis/RNA_sim_G1R1.csv")
+write.csv(as.data.frame(sim$Group_3$Rep_1$`sim_scRNA-seq`@assays$RNA@counts), "../test_scMOSim/analysis/RNA_sim_G3R1.csv")
+
+write.csv(as.data.frame(sim$Group_2$Rep_2$`sim_scRNA-seq`@assays$RNA@counts), "../test_scMOSim/analysis/RNA_sim_G2R2.csv")
+write.csv(as.data.frame(sim$Group_1$Rep_2$`sim_scRNA-seq`@assays$RNA@counts), "../test_scMOSim/analysis/RNA_sim_G1R2.csv")
+write.csv(as.data.frame(sim$Group_3$Rep_2$`sim_scRNA-seq`@assays$RNA@counts), "../test_scMOSim/analysis/RNA_sim_G3R2.csv")
+
+write.csv(as.data.frame(sim$Group_2$Rep_3$`sim_scRNA-seq`@assays$RNA@counts), "../test_scMOSim/analysis/RNA_sim_G2R3.csv")
+write.csv(as.data.frame(sim$Group_1$Rep_3$`sim_scRNA-seq`@assays$RNA@counts), "../test_scMOSim/analysis/RNA_sim_G1R3.csv")
+write.csv(as.data.frame(sim$Group_3$Rep_3$`sim_scRNA-seq`@assays$RNA@counts), "../test_scMOSim/analysis/RNA_sim_G3R3.csv")
+
+write.csv(as.data.frame(sim$Group_2$Rep_4$`sim_scRNA-seq`@assays$RNA@counts), "../test_scMOSim/analysis/RNA_sim_G2R4.csv")
+write.csv(as.data.frame(sim$Group_1$Rep_4$`sim_scRNA-seq`@assays$RNA@counts), "../test_scMOSim/analysis/RNA_sim_G1R4.csv")
+write.csv(as.data.frame(sim$Group_3$Rep_4$`sim_scRNA-seq`@assays$RNA@counts), "../test_scMOSim/analysis/RNA_sim_G3R4.csv")
+
+write.csv(as.data.frame(sim$Group_2$Rep_5$`sim_scRNA-seq`@assays$RNA@counts), "../test_scMOSim/analysis/RNA_sim_G2R5.csv")
+write.csv(as.data.frame(sim$Group_1$Rep_5$`sim_scRNA-seq`@assays$RNA@counts), "../test_scMOSim/analysis/RNA_sim_G1R5.csv")
+write.csv(as.data.frame(sim$Group_3$Rep_5$`sim_scRNA-seq`@assays$RNA@counts), "../test_scMOSim/analysis/RNA_sim_G3R5.csv")
+
+
+
+write.csv(as.data.frame(sim$Group_2$Rep_1$`sim_scATAC-seq`@assays$ATAC@counts), "../test_scMOSim/analysis/ATAC_sim_G2R1.csv")
+write.csv(as.data.frame(sim$Group_1$Rep_1$`sim_scATAC-seq`@assays$ATAC@counts), "../test_scMOSim/analysis/ATAC_sim_G1R1.csv")
+write.csv(as.data.frame(sim$Group_3$Rep_1$`sim_scATAC-seq`@assays$ATAC@counts), "../test_scMOSim/analysis/ATAC_sim_G3R1.csv")
+
+write.csv(as.data.frame(sim$Group_2$Rep_2$`sim_scATAC-seq`@assays$ATAC@counts), "../test_scMOSim/analysis/ATAC_sim_G2R2.csv")
+write.csv(as.data.frame(sim$Group_1$Rep_2$`sim_scATAC-seq`@assays$ATAC@counts), "../test_scMOSim/analysis/ATAC_sim_G1R2.csv")
+write.csv(as.data.frame(sim$Group_3$Rep_2$`sim_scATAC-seq`@assays$ATAC@counts), "../test_scMOSim/analysis/ATAC_sim_G3R2.csv")
+
+write.csv(as.data.frame(sim$Group_2$Rep_3$`sim_scATAC-seq`@assays$ATAC@counts), "../test_scMOSim/analysis/ATAC_sim_G2R3.csv")
+write.csv(as.data.frame(sim$Group_1$Rep_3$`sim_scATAC-seq`@assays$ATAC@counts), "../test_scMOSim/analysis/ATAC_sim_G1R3.csv")
+write.csv(as.data.frame(sim$Group_3$Rep_3$`sim_scATAC-seq`@assays$ATAC@counts), "../test_scMOSim/analysis/ATAC_sim_G3R3.csv")
+
+write.csv(as.data.frame(sim$Group_2$Rep_4$`sim_scATAC-seq`@assays$ATAC@counts), "../test_scMOSim/analysis/ATAC_sim_G2R4.csv")
+write.csv(as.data.frame(sim$Group_1$Rep_4$`sim_scATAC-seq`@assays$ATAC@counts), "../test_scMOSim/analysis/ATAC_sim_G1R4.csv")
+write.csv(as.data.frame(sim$Group_3$Rep_4$`sim_scATAC-seq`@assays$ATAC@counts), "../test_scMOSim/analysis/ATAC_sim_G3R4.csv")
+
+write.csv(as.data.frame(sim$Group_2$Rep_5$`sim_scATAC-seq`@assays$ATAC@counts), "../test_scMOSim/analysis/ATAC_sim_G2R5.csv")
+write.csv(as.data.frame(sim$Group_1$Rep_5$`sim_scATAC-seq`@assays$ATAC@counts), "../test_scMOSim/analysis/ATAC_sim_G1R5.csv")
+write.csv(as.data.frame(sim$Group_3$Rep_5$`sim_scATAC-seq`@assays$ATAC@counts), "../test_scMOSim/analysis/ATAC_sim_G3R5.csv")
+
+```
+
+```{r}
+VlnPlot(sim$Group_1$Rep_1$`sim_scRNA-seq`, features = c("nFeature_RNA", "nCount_RNA"), ncol = 2, col = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/featCount_RNA_G1R1.pdf")
+VlnPlot(sim$Group_1$Rep_2$`sim_scRNA-seq`, features = c("nFeature_RNA", "nCount_RNA"), ncol = 2, col = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/featCount_RNA_G1R2.pdf")
+VlnPlot(sim$Group_2$Rep_1$`sim_scRNA-seq`, features = c("nFeature_RNA", "nCount_RNA"), ncol = 2, col = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/featCount_RNA_G2R1.pdf")
+VlnPlot(sim$Group_2$Rep_2$`sim_scRNA-seq`, features = c("nFeature_RNA", "nCount_RNA"), ncol = 2, col = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/featCount_RNA_G2R2.pdf")
+VlnPlot(sim$Group_3$Rep_1$`sim_scRNA-seq`, features = c("nFeature_RNA", "nCount_RNA"), ncol = 2, col = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/featCount_RNA_G3R1.pdf")
+VlnPlot(sim$Group_3$Rep_2$`sim_scRNA-seq`, features = c("nFeature_RNA", "nCount_RNA"), ncol = 2, col = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/featCount_RNA_G3R2.pdf")
+
+## Add metadata
+## Add metadata
+sim$Group_1$Rep_1$`sim_scRNA-seq` <- Seurat::AddMetaData(sim$Group_1$Rep_1$`sim_scRNA-seq`, list("Group" = rep("Group_1", length(colnames(sim$Group_1$Rep_1$`sim_scRNA-seq`))), "Rep" = rep("Rep_1", length(colnames(sim$Group_1$Rep_1$`sim_scRNA-seq`)))))
+
+sim$Group_1$Rep_2$`sim_scRNA-seq` <- Seurat::AddMetaData(sim$Group_1$Rep_2$`sim_scRNA-seq`, list("Group" = rep("Group_1", length(colnames(sim$Group_1$Rep_2$`sim_scRNA-seq`))), "Rep" = rep("Rep_2", length(colnames(sim$Group_1$Rep_2$`sim_scRNA-seq`)))))
+
+sim$Group_1$Rep_3$`sim_scRNA-seq` <- Seurat::AddMetaData(sim$Group_1$Rep_3$`sim_scRNA-seq`, list("Group" = rep("Group_1", length(colnames(sim$Group_1$Rep_3$`sim_scRNA-seq`))), "Rep" = rep("Rep_3", length(colnames(sim$Group_1$Rep_3$`sim_scRNA-seq`)))))
+
+sim$Group_1$Rep_4$`sim_scRNA-seq` <- Seurat::AddMetaData(sim$Group_1$Rep_4$`sim_scRNA-seq`, list("Group" = rep("Group_1", length(colnames(sim$Group_1$Rep_4$`sim_scRNA-seq`))), "Rep" = rep("Rep_4", length(colnames(sim$Group_1$Rep_4$`sim_scRNA-seq`)))))
+
+sim$Group_1$Rep_5$`sim_scRNA-seq` <- Seurat::AddMetaData(sim$Group_1$Rep_5$`sim_scRNA-seq`, list("Group" = rep("Group_1", length(colnames(sim$Group_1$Rep_5$`sim_scRNA-seq`))), "Rep" = rep("Rep_5", length(colnames(sim$Group_1$Rep_5$`sim_scRNA-seq`)))))
+
+sim$Group_2$Rep_1$`sim_scRNA-seq` <- Seurat::AddMetaData(sim$Group_2$Rep_1$`sim_scRNA-seq`, list("Group" = rep("Group_2", length(colnames(sim$Group_2$Rep_1$`sim_scRNA-seq`))), "Rep" = rep("Rep_1", length(colnames(sim$Group_2$Rep_1$`sim_scRNA-seq`)))))
+
+sim$Group_2$Rep_2$`sim_scRNA-seq` <- Seurat::AddMetaData(sim$Group_2$Rep_2$`sim_scRNA-seq`, list("Group" = rep("Group_2", length(colnames(sim$Group_2$Rep_2$`sim_scRNA-seq`))), "Rep" = rep("Rep_2", length(colnames(sim$Group_2$Rep_2$`sim_scRNA-seq`)))))
+
+sim$Group_2$Rep_3$`sim_scRNA-seq` <- Seurat::AddMetaData(sim$Group_2$Rep_3$`sim_scRNA-seq`, list("Group" = rep("Group_2", length(colnames(sim$Group_2$Rep_3$`sim_scRNA-seq`))), "Rep" = rep("Rep_3", length(colnames(sim$Group_2$Rep_3$`sim_scRNA-seq`)))))
+
+sim$Group_2$Rep_4$`sim_scRNA-seq` <- Seurat::AddMetaData(sim$Group_2$Rep_4$`sim_scRNA-seq`, list("Group" = rep("Group_2", length(colnames(sim$Group_2$Rep_4$`sim_scRNA-seq`))), "Rep" = rep("Rep_4", length(colnames(sim$Group_2$Rep_4$`sim_scRNA-seq`)))))
+
+sim$Group_2$Rep_5$`sim_scRNA-seq` <- Seurat::AddMetaData(sim$Group_2$Rep_5$`sim_scRNA-seq`, list("Group" = rep("Group_2", length(colnames(sim$Group_2$Rep_5$`sim_scRNA-seq`))), "Rep" = rep("Rep_5", length(colnames(sim$Group_2$Rep_5$`sim_scRNA-seq`)))))
+
+sim$Group_3$Rep_1$`sim_scRNA-seq` <- Seurat::AddMetaData(sim$Group_3$Rep_1$`sim_scRNA-seq`, list("Group" = rep("Group_3", length(colnames(sim$Group_3$Rep_1$`sim_scRNA-seq`))), "Rep" = rep("Rep_1", length(colnames(sim$Group_3$Rep_1$`sim_scRNA-seq`)))))
+
+sim$Group_3$Rep_2$`sim_scRNA-seq` <- Seurat::AddMetaData(sim$Group_3$Rep_2$`sim_scRNA-seq`, list("Group" = rep("Group_3", length(colnames(sim$Group_3$Rep_2$`sim_scRNA-seq`))), "Rep" = rep("Rep_2", length(colnames(sim$Group_3$Rep_2$`sim_scRNA-seq`)))))
+
+sim$Group_3$Rep_3$`sim_scRNA-seq` <- Seurat::AddMetaData(sim$Group_3$Rep_3$`sim_scRNA-seq`, list("Group" = rep("Group_3", length(colnames(sim$Group_3$Rep_3$`sim_scRNA-seq`))), "Rep" = rep("Rep_3", length(colnames(sim$Group_3$Rep_3$`sim_scRNA-seq`)))))
+
+sim$Group_3$Rep_4$`sim_scRNA-seq` <- Seurat::AddMetaData(sim$Group_3$Rep_4$`sim_scRNA-seq`, list("Group" = rep("Group_3", length(colnames(sim$Group_3$Rep_4$`sim_scRNA-seq`))), "Rep" = rep("Rep_4", length(colnames(sim$Group_3$Rep_4$`sim_scRNA-seq`)))))
+
+sim$Group_3$Rep_5$`sim_scRNA-seq` <- Seurat::AddMetaData(sim$Group_3$Rep_5$`sim_scRNA-seq`, list("Group" = rep("Group_3", length(colnames(sim$Group_3$Rep_5$`sim_scRNA-seq`))), "Rep" = rep("Rep_5", length(colnames(sim$Group_3$Rep_5$`sim_scRNA-seq`)))))
+
+group1_1 <- NormalizeData(object = sim$Group_1$Rep_1$`sim_scRNA-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group2_1 <- NormalizeData(object = sim$Group_2$Rep_1$`sim_scRNA-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group3_1 <- NormalizeData(object = sim$Group_3$Rep_1$`sim_scRNA-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group1_2 <- NormalizeData(object = sim$Group_1$Rep_2$`sim_scRNA-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group2_2 <- NormalizeData(object = sim$Group_2$Rep_2$`sim_scRNA-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group3_2 <- NormalizeData(object = sim$Group_3$Rep_2$`sim_scRNA-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group1_3 <- NormalizeData(object = sim$Group_1$Rep_3$`sim_scRNA-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group2_3 <- NormalizeData(object = sim$Group_2$Rep_3$`sim_scRNA-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group3_3 <- NormalizeData(object = sim$Group_3$Rep_3$`sim_scRNA-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group1_4 <- NormalizeData(object = sim$Group_1$Rep_4$`sim_scRNA-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group2_4 <- NormalizeData(object = sim$Group_2$Rep_4$`sim_scRNA-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group3_4 <- NormalizeData(object = sim$Group_3$Rep_4$`sim_scRNA-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group1_5 <- NormalizeData(object = sim$Group_1$Rep_5$`sim_scRNA-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group2_5 <- NormalizeData(object = sim$Group_2$Rep_5$`sim_scRNA-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group3_5 <- NormalizeData(object = sim$Group_3$Rep_5$`sim_scRNA-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+
+group1_1 <- FindVariableFeatures(group1_1, selection.method = "vst", nfeatures = 2000)
+group2_1 <- FindVariableFeatures(group2_1, selection.method = "vst", nfeatures = 2000)
+group3_1 <- FindVariableFeatures(group3_1, selection.method = "vst", nfeatures = 2000)
+
+p1_1 <- LabelPoints(plot = VariableFeaturePlot(group1_1), points = head(VariableFeatures(group1_1), 10), repel = TRUE)
+p2_1 <- LabelPoints(plot = VariableFeaturePlot(group2_1), points = head(VariableFeatures(group2_1), 10), repel = TRUE)
+p3_1 <- LabelPoints(plot = VariableFeaturePlot(group3_1), points = head(VariableFeatures(group3_1), 10), repel = TRUE)
+
+group1_2 <- FindVariableFeatures(group1_2, selection.method = "vst", nfeatures = 2000)
+group2_2 <- FindVariableFeatures(group2_2, selection.method = "vst", nfeatures = 2000)
+group3_2 <- FindVariableFeatures(group3_2, selection.method = "vst", nfeatures = 2000)
+
+p1_2 <- LabelPoints(plot = VariableFeaturePlot(group1_2), points = head(VariableFeatures(group1_2), 10), repel = TRUE)
+p2_2 <- LabelPoints(plot = VariableFeaturePlot(group2_2), points = head(VariableFeatures(group2_2), 10), repel = TRUE)
+p3_2 <- LabelPoints(plot = VariableFeaturePlot(group3_2), points = head(VariableFeatures(group3_2), 10), repel = TRUE)
+
+group1_3 <- FindVariableFeatures(group1_3, selection.method = "vst", nfeatures = 2000)
+group2_3 <- FindVariableFeatures(group2_3, selection.method = "vst", nfeatures = 2000)
+group3_3 <- FindVariableFeatures(group3_3, selection.method = "vst", nfeatures = 2000)
+
+p1_3 <- LabelPoints(plot = VariableFeaturePlot(group1_3), points = head(VariableFeatures(group1_3), 10), repel = TRUE)
+p2_3 <- LabelPoints(plot = VariableFeaturePlot(group2_3), points = head(VariableFeatures(group2_3), 10), repel = TRUE)
+p3_3 <- LabelPoints(plot = VariableFeaturePlot(group3_3), points = head(VariableFeatures(group3_3), 10), repel = TRUE)
+
+group1_4 <- FindVariableFeatures(group1_4, selection.method = "vst", nfeatures = 2000)
+group2_4 <- FindVariableFeatures(group2_4, selection.method = "vst", nfeatures = 2000)
+group3_4 <- FindVariableFeatures(group3_4, selection.method = "vst", nfeatures = 2000)
+
+p1_4 <- LabelPoints(plot = VariableFeaturePlot(group1_4), points = head(VariableFeatures(group1_4), 10), repel = TRUE)
+p2_4 <- LabelPoints(plot = VariableFeaturePlot(group2_4), points = head(VariableFeatures(group2_4), 10), repel = TRUE)
+p3_4 <- LabelPoints(plot = VariableFeaturePlot(group3_4), points = head(VariableFeatures(group3_4), 10), repel = TRUE)
+
+group1_5 <- FindVariableFeatures(group1_5, selection.method = "vst", nfeatures = 2000)
+group2_5 <- FindVariableFeatures(group2_5, selection.method = "vst", nfeatures = 2000)
+group3_5 <- FindVariableFeatures(group3_5, selection.method = "vst", nfeatures = 2000)
+
+p1_5 <- LabelPoints(plot = VariableFeaturePlot(group1_5), points = head(VariableFeatures(group1_5), 10), repel = TRUE)
+p2_5 <- LabelPoints(plot = VariableFeaturePlot(group2_5), points = head(VariableFeatures(group2_5), 10), repel = TRUE)
+p3_5 <- LabelPoints(plot = VariableFeaturePlot(group3_5), points = head(VariableFeatures(group3_5), 10), repel = TRUE)
+```
+
+```{r}
+# Compare replicate 1 from each group
+
+p1_1
+ggsave("../test_scMOSim/plots/varfeat_RNA_G1R1.pdf")
+p2_1
+ggsave("../test_scMOSim/plots/varfeat_RNA_G2R1.pdf")
+p3_1
+ggsave("../test_scMOSim/plots/varfeat_RNA_G3R1.pdf")
+
+p1_2
+ggsave("../test_scMOSim/plots/varfeat_RNA_G1R2.pdf")
+p2_2
+ggsave("../test_scMOSim/plots/varfeat_RNA_G2R2.pdf")
+p3_2
+ggsave("../test_scMOSim/plots/varfeat_RNA_G3R2.pdf")
+```
+
+```{r}
+# PCAS
+genesp1_1 <- rownames(group1_1)
+group1_1 <- ScaleData(group1_1, features = genesp1_1)
+group1_1 <- RunPCA(group1_1, features = VariableFeatures(object = group1_1), npcs = 10)
+DimPlot(group1_1, reduction = "pca")
+
+genesp1_2 <- rownames(group1_2)
+group1_2 <- ScaleData(group1_2, features = genesp1_2)
+group1_2 <- RunPCA(group1_2, features = VariableFeatures(object = group1_2), npcs = 10)
+
+genesp1_3 <- rownames(group1_3)
+group1_3 <- ScaleData(group1_3, features = genesp1_3)
+group1_3 <- RunPCA(group1_3, features = VariableFeatures(object = group1_3), npcs = 10)
+
+genesp1_4 <- rownames(group1_4)
+group1_4 <- ScaleData(group1_4, features = genesp1_4)
+group1_4 <- RunPCA(group1_4, features = VariableFeatures(object = group1_4), npcs = 10)
+
+genesp1_5 <- rownames(group1_5)
+group1_5 <- ScaleData(group1_5, features = genesp1_5)
+group1_5 <- RunPCA(group1_5, features = VariableFeatures(object = group1_5), npcs = 10)
+
+genesp2_1 <- rownames(group2_1)
+group2_1 <- ScaleData(group2_1, features = genesp2_1)
+group2_1 <- RunPCA(group2_1, features = VariableFeatures(object = group2_1), npcs = 10)
+
+genesp2_2 <- rownames(group2_2)
+group2_2 <- ScaleData(group2_2, features = genesp2_2)
+group2_2 <- RunPCA(group2_2, features = VariableFeatures(object = group2_2), npcs = 10)
+
+genesp2_3 <- rownames(group2_3)
+group2_3 <- ScaleData(group2_3, features = genesp2_3)
+group2_3 <- RunPCA(group2_3, features = VariableFeatures(object = group2_3), npcs = 10)
+
+genesp2_4 <- rownames(group2_4)
+group2_4 <- ScaleData(group2_4, features = genesp2_4)
+group2_4 <- RunPCA(group2_4, features = VariableFeatures(object = group2_4), npcs = 10)
+
+genesp2_5 <- rownames(group2_5)
+group2_5 <- ScaleData(group2_5, features = genesp2_5)
+group2_5 <- RunPCA(group2_5, features = VariableFeatures(object = group2_5), npcs = 10)
+
+genesp3_1 <- rownames(group3_1)
+group3_1 <- ScaleData(group3_1, features = genesp3_1)
+group3_1 <- RunPCA(group3_1, features = VariableFeatures(object = group3_1), npcs = 10)
+
+genesp3_2 <- rownames(group3_2)
+group3_2 <- ScaleData(group3_2, features = genesp3_2)
+group3_2 <- RunPCA(group3_2, features = VariableFeatures(object = group3_2), npcs = 10)
+
+genesp3_3 <- rownames(group3_3)
+group3_3 <- ScaleData(group3_3, features = genesp3_3)
+group3_3 <- RunPCA(group3_3, features = VariableFeatures(object = group3_3), npcs = 10)
+
+genesp3_4 <- rownames(group3_4)
+group3_4 <- ScaleData(group3_4, features = genesp3_4)
+group3_4 <- RunPCA(group3_4, features = VariableFeatures(object = group3_4), npcs = 10)
+
+genesp3_5 <- rownames(group3_5)
+group3_5 <- ScaleData(group3_5, features = genesp3_5)
+group3_5 <- RunPCA(group3_5, features = VariableFeatures(object = group3_5), npcs = 10)
+
+DimPlot(group1_1, reduction = "pca", cols = colorConesa(4, palette = "main")) 
+ggsave("../test_scMOSim/plots/PCA_RNA_G1R1.pdf")
+DimPlot(group1_2, reduction = "pca", cols = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/PCA_RNA_G1R2.pdf")
+
+DimPlot(group2_1, reduction = "pca", cols = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/PCA_RNA_G2R1.pdf")
+DimPlot(group2_2, reduction = "pca", cols = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/PCA_RNA_G2R2.pdf")
+DimPlot(group3_1, reduction = "pca", cols = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/PCA_RNA_G3R1.pdf")
+DimPlot(group3_2, reduction = "pca", cols = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/PCA_RNA_G3R2.pdf")
+```
+
+```{r}
+group1_1 <- RunUMAP(group1_1, dims = 1:10)
+group1_2 <- RunUMAP(group1_2, dims = 1:10)
+group1_3 <- RunUMAP(group1_3, dims = 1:10)
+group1_4 <- RunUMAP(group1_4, dims = 1:10)
+group1_5 <- RunUMAP(group1_5, dims = 1:10)
+group2_1 <- RunUMAP(group2_1, dims = 1:10)
+group2_2 <- RunUMAP(group2_2, dims = 1:10)
+group2_3 <- RunUMAP(group2_3, dims = 1:10)
+group2_4 <- RunUMAP(group2_4, dims = 1:10)
+group2_5 <- RunUMAP(group2_5, dims = 1:10)
+group3_1 <- RunUMAP(group3_1, dims = 1:10)
+group3_2 <- RunUMAP(group3_2, dims = 1:10)
+group3_3 <- RunUMAP(group3_3, dims = 1:10)
+group3_4 <- RunUMAP(group3_4, dims = 1:10)
+group3_5 <- RunUMAP(group3_5, dims = 1:10)
+DimPlot(group1_1, reduction = "umap", cols = colorConesa(4, palette = "main")) 
+ggsave("../test_scMOSim/plots/UMAP_RNA_G1R1.pdf")
+DimPlot(group1_2, reduction = "umap", cols = colorConesa(4, palette = "main")) 
+ggsave("../test_scMOSim/plots/UMAP_RNA_G1R2.pdf")
+DimPlot(group2_1, reduction = "umap", cols = colorConesa(4, palette = "main")) 
+ggsave("../test_scMOSim/plots/UMAP_RNA_G2R1.pdf")
+DimPlot(group2_2, reduction = "umap", cols = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/UMAP_RNA_G2R2.pdf")
+DimPlot(group3_1, reduction = "umap", cols = colorConesa(4, palette = "main")) 
+ggsave("../test_scMOSim/plots/UMAP_RNA_G3R1.pdf")
+DimPlot(group3_2, reduction = "umap", cols = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/UMAP_RNA_G3R2.pdf")
+```
+
+## Testing integration of scRNA to make sure everything is working as it should
+
+```{r}
+
+g1 <- list(g1_rep1 = group1_1, g1_rep2 = group1_2,
+           g1_rep3 = group1_3, g1_rep4 = group1_4, g1_rep5 = group1_5)
+
+g2 <- list(g2_rep1 = group2_1, g2_rep2 = group2_2, 
+           g2_rep3 = group2_3, g2_rep4 = group2_4, 
+           g2_rep5 = group2_5)
+
+g3 <- list(g3_rep1 = group3_1, g3_rep2 = group3_2, 
+           g3_rep3 = group3_3, g3_rep4 = group3_4, 
+           g3_rep5 = group3_5)
+
+gtogether <- list(g1_rep1 = group1_1, g1_rep2 = group1_2,
+           g1_rep3 = group1_3, g1_rep4 = group1_4, g1_rep5 = group1_5, 
+           g2_rep1 = group2_1, g2_rep2 = group2_2, 
+           g2_rep3 = group2_3, g2_rep4 = group2_4, 
+           g2_rep5 = group2_5, g3_rep1 = group3_1, g3_rep2 = group3_2, 
+           g3_rep3 = group3_3, g3_rep4 = group3_4, 
+           g3_rep5 = group3_5)
+
+# normalize and identify variable features for each dataset independently
+g1 <- lapply(X = g1, FUN = function(x) {
+    x <- NormalizeData(x)
+    x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+
+# normalize and identify variable features for each dataset independently
+g2 <- lapply(X = g2, FUN = function(x) {
+    x <- NormalizeData(x)
+    x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+
+# normalize and identify variable features for each dataset independently
+g3 <- lapply(X = g3, FUN = function(x) {
+    x <- NormalizeData(x)
+    x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+
+# normalize and identify variable features for each dataset independently
+gtogether <- lapply(X = gtogether, FUN = function(x) {
+    x <- NormalizeData(x)
+    x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+
+# select features that are repeatedly variable across datasets for integration
+featuresg1 <- SelectIntegrationFeatures(object.list = g1)
+
+immune.anchorsg1 <- FindIntegrationAnchors(object.list = g1, anchor.features = featuresg1)
+immune.combinedg1 <- IntegrateData(anchorset = immune.anchorsg1, k.weight = 40)
+
+# specify that we will perform downstream analysis on the corrected data note that the
+# original unmodified data still resides in the 'RNA' assay
+DefaultAssay(immune.combinedg1) <- "integrated"
+
+# Run the standard workflow for visualization and clustering
+immune.combinedg1 <- ScaleData(immune.combinedg1, verbose = FALSE)
+immune.combinedg1 <- RunPCA(immune.combinedg1, npcs = 30, verbose = FALSE)
+immune.combinedg1 <- RunUMAP(immune.combinedg1, reduction = "pca", dims = 1:30)
+immune.combinedg1 <- FindNeighbors(immune.combinedg1, reduction = "pca", dims = 1:30)
+immune.combinedg1 <- FindClusters(immune.combinedg1, resolution = 0.5)
+
+# Visualization
+p1g1 <- DimPlot(immune.combinedg1, reduction = "umap", group.by = "Rep", cols=colorConesa(3, palette = "main"))
+p2g1 <- DimPlot(immune.combinedg1, reduction = "umap", label = FALSE, cols = colorConesa(6, palette = "main"))
+p1g1 + p2g1
+ggsave("../test_scMOSim/plots/umap_rep_cells_G1.pdf")
+
+p1g1 <- DimPlot(immune.combinedg1, reduction = "pca", group.by = "Rep", cols=colorConesa(3, palette = "main"))
+p2g1 <- DimPlot(immune.combinedg1, reduction = "pca", label = FALSE, cols = colorConesa(6, palette = "main"))
+p1g1 + p2g1
+ggsave("../test_scMOSim/plots/pca_rep_cells_G1.pdf")
+
+
+
+# select features that are repeatedly variable across datasets for integration
+featuresg2 <- SelectIntegrationFeatures(object.list = g2)
+
+immune.anchorsg2 <- FindIntegrationAnchors(object.list = g2, anchor.features = featuresg2)
+immune.combinedg2 <- IntegrateData(anchorset = immune.anchorsg2, k.weight = 40)
+
+# specify that we will perform downstream analysis on the corrected data note that the
+# original unmodified data still resides in the 'RNA' assay
+DefaultAssay(immune.combinedg2) <- "integrated"
+
+# Run the standard workflow for visualization and clustering
+immune.combinedg2 <- ScaleData(immune.combinedg2, verbose = FALSE)
+immune.combinedg2 <- RunPCA(immune.combinedg2, npcs = 30, verbose = FALSE)
+immune.combinedg2 <- RunUMAP(immune.combinedg2, reduction = "pca", dims = 1:30)
+immune.combinedg2 <- FindNeighbors(immune.combinedg2, reduction = "pca", dims = 1:30)
+immune.combinedg2 <- FindClusters(immune.combinedg2, resolution = 0.5)
+
+# Visualization
+p1g1 <- DimPlot(immune.combinedg2, reduction = "umap", group.by = "Rep", cols=colorConesa(3, palette = "main"))
+p2g1 <- DimPlot(immune.combinedg2, reduction = "umap", label = FALSE, cols = colorConesa(6, palette = "main"))
+p1g1 + p2g1
+ggsave("../test_scMOSim/plots/umap_rep_cells_G2.pdf")
+
+p1g1 <- DimPlot(immune.combinedg2, reduction = "pca", group.by = "Rep", cols=colorConesa(3, palette = "main"))
+p2g1 <- DimPlot(immune.combinedg2, reduction = "pca", label = FALSE, cols = colorConesa(6, palette = "main"))
+p1g1 + p2g1
+ggsave("../test_scMOSim/plots/pca_rep_cells_G2.pdf")
+
+
+
+# select features that are repeatedly variable across datasets for integration
+featuresg3 <- SelectIntegrationFeatures(object.list = g3)
+
+immune.anchorsg3 <- FindIntegrationAnchors(object.list = g3, anchor.features = featuresg3)
+immune.combinedg3 <- IntegrateData(anchorset = immune.anchorsg3, k.weight = 40)
+
+# specify that we will perform downstream analysis on the corrected data note that the
+# original unmodified data still resides in the 'RNA' assay
+DefaultAssay(immune.combinedg3) <- "integrated"
+
+# Run the standard workflow for visualization and clustering
+immune.combinedg3 <- ScaleData(immune.combinedg3, verbose = FALSE)
+immune.combinedg3 <- RunPCA(immune.combinedg3, npcs = 30, verbose = FALSE)
+immune.combinedg3 <- RunUMAP(immune.combinedg3, reduction = "pca", dims = 1:30)
+immune.combinedg3 <- FindNeighbors(immune.combinedg3, reduction = "pca", dims = 1:30)
+immune.combinedg3 <- FindClusters(immune.combinedg3, resolution = 0.5)
+
+# Visualization
+p1g1 <- DimPlot(immune.combinedg3, reduction = "umap", group.by = "Rep", cols=colorConesa(3, palette = "main"))
+p2g1 <- DimPlot(immune.combinedg3, reduction = "umap", label = FALSE, cols = colorConesa(6, palette = "main"))
+p1g1 + p2g1
+ggsave("../test_scMOSim/plots/umap_rep_cells_G3.pdf")
+
+p1g1 <- DimPlot(immune.combinedg3, reduction = "pca", group.by = "Rep", cols=colorConesa(3, palette = "main"))
+p2g1 <- DimPlot(immune.combinedg3, reduction = "pca", label = FALSE, cols = colorConesa(6, palette = "main"))
+p1g1 + p2g1
+ggsave("../test_scMOSim/plots/pca_rep_cells_G3.pdf")
+```
+
+```{r}
+# select features that are repeatedly variable across datasets for integration
+featurestogether <- SelectIntegrationFeatures(object.list = gtogether)
+
+immune.anchorstogether <- FindIntegrationAnchors(object.list = gtogether, anchor.features = featurestogether)
+immune.combinedtogether <- IntegrateData(anchorset = immune.anchorstogether, k.weight = 40)
+
+# specify that we will perform downstream analysis on the corrected data note that the
+# original unmodified data still resides in the 'RNA' assay
+DefaultAssay(immune.combinedtogether) <- "integrated"
+
+# Run the standard workflow for visualization and clustering
+immune.combinedtogether <- ScaleData(immune.combinedtogether, verbose = FALSE)
+immune.combinedtogether <- RunPCA(immune.combinedtogether, npcs = 30, verbose = FALSE)
+immune.combinedtogether <- RunUMAP(immune.combinedtogether, reduction = "pca", dims = 1:30,
+                                   n.components = 4L)
+immune.combinedtogether <- FindNeighbors(immune.combinedtogether, reduction = "pca", dims = 1:30)
+immune.combinedtogether <- FindClusters(immune.combinedtogether, resolution = 0.5)
+
+# Visualization
+
+p2g1 <- DimPlot(immune.combinedtogether, reduction = "umap", label = FALSE, cols = colorConesa(4, palette = "main"))
+p1g1 <- DimPlot(immune.combinedtogether, reduction = "umap", group.by = "Rep", cols = colorConesa(5, palette = "main"))
+p2g1 + p1g1
+ggsave("./umap_group_cells_G1.pdf")
+
+p12 <- DimPlot(immune.combinedtogether, reduction = "umap", group.by = "Group", cols = colorConesa(3, palette = "main"), dims = c(1,2))
+p34 <- DimPlot(immune.combinedtogether, reduction = "umap", group.by = "Group", cols = colorConesa(3, palette = "main"), dims = c(3,4))
+p12 + p34
+ggsave("./umap_group_dimensions.pdf")
+```
+
+```{r}
+
+```
+
+# Now doing ATAC
+
+
+```{r}
+VlnPlot(sim$Group_1$Rep_1$`sim_scATAC-seq`, features = c("nFeature_ATAC", "nCount_ATAC"), ncol = 2, col = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/featCount_ATAC_G1R1.pdf")
+VlnPlot(sim$Group_1$Rep_2$`sim_scATAC-seq`, features = c("nFeature_ATAC", "nCount_ATAC"), ncol = 2, col = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/featCount_ATAC_G1R2.pdf")
+VlnPlot(sim$Group_2$Rep_1$`sim_scATAC-seq`, features = c("nFeature_ATAC", "nCount_ATAC"), ncol = 2, col = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/featCount_ATAC_G2R1.pdf")
+VlnPlot(sim$Group_2$Rep_2$`sim_scATAC-seq`, features = c("nFeature_ATAC", "nCount_ATAC"), ncol = 2, col = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/featCount_ATAC_G2R2.pdf")
+VlnPlot(sim$Group_3$Rep_1$`sim_scATAC-seq`, features = c("nFeature_ATAC", "nCount_ATAC"), ncol = 2, col = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/featCount_ATAC_G3R1.pdf")
+VlnPlot(sim$Group_3$Rep_2$`sim_scATAC-seq`, features = c("nFeature_ATAC", "nCount_ATAC"), ncol = 2, col = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/featCount_ATAC_G3R2.pdf")
+
+## Add metadata
+## Add metadata
+sim$Group_1$Rep_1$`sim_scATAC-seq` <- Seurat::AddMetaData(sim$Group_1$Rep_1$`sim_scATAC-seq`, list("Group" = rep("Group_1", length(colnames(sim$Group_1$Rep_1$`sim_scATAC-seq`))), "Rep" = rep("Rep_1", length(colnames(sim$Group_1$Rep_1$`sim_scATAC-seq`)))))
+
+sim$Group_1$Rep_2$`sim_scATAC-seq` <- Seurat::AddMetaData(sim$Group_1$Rep_2$`sim_scATAC-seq`, list("Group" = rep("Group_1", length(colnames(sim$Group_1$Rep_2$`sim_scATAC-seq`))), "Rep" = rep("Rep_2", length(colnames(sim$Group_1$Rep_2$`sim_scATAC-seq`)))))
+
+sim$Group_1$Rep_3$`sim_scATAC-seq` <- Seurat::AddMetaData(sim$Group_1$Rep_3$`sim_scATAC-seq`, list("Group" = rep("Group_1", length(colnames(sim$Group_1$Rep_3$`sim_scATAC-seq`))), "Rep" = rep("Rep_2", length(colnames(sim$Group_1$Rep_3$`sim_scATAC-seq`)))))
+
+sim$Group_1$Rep_4$`sim_scATAC-seq` <- Seurat::AddMetaData(sim$Group_1$Rep_4$`sim_scATAC-seq`, list("Group" = rep("Group_1", length(colnames(sim$Group_1$Rep_4$`sim_scATAC-seq`))), "Rep" = rep("Rep_2", length(colnames(sim$Group_1$Rep_4$`sim_scATAC-seq`)))))
+
+sim$Group_1$Rep_5$`sim_scATAC-seq` <- Seurat::AddMetaData(sim$Group_1$Rep_5$`sim_scATAC-seq`, list("Group" = rep("Group_1", length(colnames(sim$Group_1$Rep_5$`sim_scATAC-seq`))), "Rep" = rep("Rep_2", length(colnames(sim$Group_1$Rep_5$`sim_scATAC-seq`)))))
+
+sim$Group_2$Rep_1$`sim_scATAC-seq` <- Seurat::AddMetaData(sim$Group_2$Rep_1$`sim_scATAC-seq`, list("Group" = rep("Group_2", length(colnames(sim$Group_2$Rep_1$`sim_scATAC-seq`))), "Rep" = rep("Rep_1", length(colnames(sim$Group_2$Rep_1$`sim_scATAC-seq`)))))
+
+sim$Group_2$Rep_2$`sim_scATAC-seq` <- Seurat::AddMetaData(sim$Group_2$Rep_2$`sim_scATAC-seq`, list("Group" = rep("Group_2", length(colnames(sim$Group_2$Rep_2$`sim_scATAC-seq`))), "Rep" = rep("Rep_2", length(colnames(sim$Group_2$Rep_2$`sim_scATAC-seq`)))))
+
+sim$Group_2$Rep_3$`sim_scATAC-seq` <- Seurat::AddMetaData(sim$Group_2$Rep_3$`sim_scATAC-seq`, list("Group" = rep("Group_2", length(colnames(sim$Group_2$Rep_3$`sim_scATAC-seq`))), "Rep" = rep("Rep_2", length(colnames(sim$Group_2$Rep_3$`sim_scATAC-seq`)))))
+
+sim$Group_2$Rep_4$`sim_scATAC-seq` <- Seurat::AddMetaData(sim$Group_2$Rep_4$`sim_scATAC-seq`, list("Group" = rep("Group_2", length(colnames(sim$Group_2$Rep_4$`sim_scATAC-seq`))), "Rep" = rep("Rep_2", length(colnames(sim$Group_2$Rep_4$`sim_scATAC-seq`)))))
+
+sim$Group_2$Rep_5$`sim_scATAC-seq` <- Seurat::AddMetaData(sim$Group_2$Rep_5$`sim_scATAC-seq`, list("Group" = rep("Group_2", length(colnames(sim$Group_2$Rep_5$`sim_scATAC-seq`))), "Rep" = rep("Rep_2", length(colnames(sim$Group_2$Rep_5$`sim_scATAC-seq`)))))
+
+sim$Group_3$Rep_1$`sim_scATAC-seq` <- Seurat::AddMetaData(sim$Group_3$Rep_1$`sim_scATAC-seq`, list("Group" = rep("Group_3", length(colnames(sim$Group_3$Rep_1$`sim_scATAC-seq`))), "Rep" = rep("Rep_1", length(colnames(sim$Group_3$Rep_1$`sim_scATAC-seq`)))))
+
+sim$Group_3$Rep_2$`sim_scATAC-seq` <- Seurat::AddMetaData(sim$Group_3$Rep_2$`sim_scATAC-seq`, list("Group" = rep("Group_3", length(colnames(sim$Group_3$Rep_2$`sim_scATAC-seq`))), "Rep" = rep("Rep_2", length(colnames(sim$Group_3$Rep_2$`sim_scATAC-seq`)))))
+
+sim$Group_3$Rep_3$`sim_scATAC-seq` <- Seurat::AddMetaData(sim$Group_3$Rep_3$`sim_scATAC-seq`, list("Group" = rep("Group_3", length(colnames(sim$Group_3$Rep_3$`sim_scATAC-seq`))), "Rep" = rep("Rep_2", length(colnames(sim$Group_3$Rep_3$`sim_scATAC-seq`)))))
+
+sim$Group_3$Rep_4$`sim_scATAC-seq` <- Seurat::AddMetaData(sim$Group_3$Rep_4$`sim_scATAC-seq`, list("Group" = rep("Group_3", length(colnames(sim$Group_3$Rep_4$`sim_scATAC-seq`))), "Rep" = rep("Rep_2", length(colnames(sim$Group_3$Rep_4$`sim_scATAC-seq`)))))
+
+sim$Group_3$Rep_5$`sim_scATAC-seq` <- Seurat::AddMetaData(sim$Group_3$Rep_5$`sim_scATAC-seq`, list("Group" = rep("Group_3", length(colnames(sim$Group_3$Rep_5$`sim_scATAC-seq`))), "Rep" = rep("Rep_2", length(colnames(sim$Group_3$Rep_5$`sim_scATAC-seq`)))))
+
+group1_1a <- NormalizeData(object = sim$Group_1$Rep_1$`sim_scATAC-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group2_1a <- NormalizeData(object = sim$Group_2$Rep_1$`sim_scATAC-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group3_1a <- NormalizeData(object = sim$Group_3$Rep_1$`sim_scATAC-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group1_2a <- NormalizeData(object = sim$Group_1$Rep_2$`sim_scATAC-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group2_2a <- NormalizeData(object = sim$Group_2$Rep_2$`sim_scATAC-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group3_2a <- NormalizeData(object = sim$Group_3$Rep_2$`sim_scATAC-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group1_3a <- NormalizeData(object = sim$Group_1$Rep_3$`sim_scATAC-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group2_3a <- NormalizeData(object = sim$Group_2$Rep_3$`sim_scATAC-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group3_3a <- NormalizeData(object = sim$Group_3$Rep_3$`sim_scATAC-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group1_4a <- NormalizeData(object = sim$Group_1$Rep_4$`sim_scATAC-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group2_4a <- NormalizeData(object = sim$Group_2$Rep_4$`sim_scATAC-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group3_4a <- NormalizeData(object = sim$Group_3$Rep_4$`sim_scATAC-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group1_5a <- NormalizeData(object = sim$Group_1$Rep_5$`sim_scATAC-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group2_5a <- NormalizeData(object = sim$Group_2$Rep_5$`sim_scATAC-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+group3_5a <- NormalizeData(object = sim$Group_3$Rep_5$`sim_scATAC-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+
+group1_1a <- FindVariableFeatures(group1_1a, selection.method = "vst", nfeatures = 2000)
+group2_1a <- FindVariableFeatures(group2_1a, selection.method = "vst", nfeatures = 2000)
+group3_1a <- FindVariableFeatures(group3_1a, selection.method = "vst", nfeatures = 2000)
+
+p1_1 <- LabelPoints(plot = VariableFeaturePlot(group1_1a), points = head(VariableFeatures(group1_1a), 10), repel = TRUE)
+p2_1 <- LabelPoints(plot = VariableFeaturePlot(group2_1a), points = head(VariableFeatures(group2_1a), 10), repel = TRUE)
+p3_1 <- LabelPoints(plot = VariableFeaturePlot(group3_1a), points = head(VariableFeatures(group3_1a), 10), repel = TRUE)
+
+group1_2a <- FindVariableFeatures(group1_2a, selection.method = "vst", nfeatures = 2000)
+group2_2a <- FindVariableFeatures(group2_2a, selection.method = "vst", nfeatures = 2000)
+group3_2a <- FindVariableFeatures(group3_2a, selection.method = "vst", nfeatures = 2000)
+
+p1_2 <- LabelPoints(plot = VariableFeaturePlot(group1_2a), points = head(VariableFeatures(group1_2a), 10), repel = TRUE)
+p2_2 <- LabelPoints(plot = VariableFeaturePlot(group2_2a), points = head(VariableFeatures(group2_2a), 10), repel = TRUE)
+p3_2 <- LabelPoints(plot = VariableFeaturePlot(group3_2a), points = head(VariableFeatures(group3_2a), 10), repel = TRUE)
+
+group1_3a <- FindVariableFeatures(group1_3a, selection.method = "vst", nfeatures = 2000)
+group2_3a <- FindVariableFeatures(group2_3a, selection.method = "vst", nfeatures = 2000)
+group3_3a <- FindVariableFeatures(group3_3a, selection.method = "vst", nfeatures = 2000)
+
+p1_3 <- LabelPoints(plot = VariableFeaturePlot(group1_3a), points = head(VariableFeatures(group1_3a), 10), repel = TRUE)
+p2_3 <- LabelPoints(plot = VariableFeaturePlot(group2_3a), points = head(VariableFeatures(group2_3a), 10), repel = TRUE)
+p3_3 <- LabelPoints(plot = VariableFeaturePlot(group3_3a), points = head(VariableFeatures(group3_3a), 10), repel = TRUE)
+
+group1_4a <- FindVariableFeatures(group1_4a, selection.method = "vst", nfeatures = 2000)
+group2_4a <- FindVariableFeatures(group2_4a, selection.method = "vst", nfeatures = 2000)
+group3_4a <- FindVariableFeatures(group3_4a, selection.method = "vst", nfeatures = 2000)
+
+p1_4 <- LabelPoints(plot = VariableFeaturePlot(group1_4a), points = head(VariableFeatures(group1_4a), 10), repel = TRUE)
+p2_4 <- LabelPoints(plot = VariableFeaturePlot(group2_4a), points = head(VariableFeatures(group2_4a), 10), repel = TRUE)
+p3_4 <- LabelPoints(plot = VariableFeaturePlot(group3_4a), points = head(VariableFeatures(group3_4a), 10), repel = TRUE)
+
+group1_5a <- FindVariableFeatures(group1_5a, selection.method = "vst", nfeatures = 2000)
+group2_5a <- FindVariableFeatures(group2_5a, selection.method = "vst", nfeatures = 2000)
+group3_5a <- FindVariableFeatures(group3_5a, selection.method = "vst", nfeatures = 2000)
+
+p1_5 <- LabelPoints(plot = VariableFeaturePlot(group1_5a), points = head(VariableFeatures(group1_5a), 10), repel = TRUE)
+p2_5 <- LabelPoints(plot = VariableFeaturePlot(group2_5a), points = head(VariableFeatures(group2_5a), 10), repel = TRUE)
+p3_5 <- LabelPoints(plot = VariableFeaturePlot(group3_5a), points = head(VariableFeatures(group3_5a), 10), repel = TRUE)
+```
+
+```{r}
+# Compare replicate 1 from each group
+
+p1_1
+ggsave("../test_scMOSim/plots/varfeat_ATAC_G1R1.pdf")
+p2_1
+ggsave("../test_scMOSim/plots/varfeat_ATAC_G2R1.pdf")
+p3_1
+ggsave("../test_scMOSim/plots/varfeat_ATAC_G3R1.pdf")
+
+p1_2
+ggsave("../test_scMOSim/plots/varfeat_ATAC_G1R2.pdf")
+p2_2
+ggsave("../test_scMOSim/plots/varfeat_ATAC_G2R2.pdf")
+p3_2
+ggsave("../test_scMOSim/plots/varfeat_ATAC_G3R2.pdf")
+```
+
+```{r}
+# PCAS
+genesp1_1a <- rownames(group1_1a)
+group1_1a <- ScaleData(group1_1a, features = genesp1_1a)
+group1_1a <- RunPCA(group1_1a, features = VariableFeatures(object = group1_1a), npcs = 10)
+DimPlot(group1_1a, reduction = "pca")
+
+genesp1_2a <- rownames(group1_2a)
+group1_2a <- ScaleData(group1_2a, features = genesp1_2a)
+group1_2a <- RunPCA(group1_2a, features = VariableFeatures(object = group1_2a), npcs = 10)
+
+genesp1_3a <- rownames(group1_3a)
+group1_3a <- ScaleData(group1_3a, features = genesp1_3a)
+group1_3a <- RunPCA(group1_3a, features = VariableFeatures(object = group1_3a), npcs = 10)
+
+genesp1_4a <- rownames(group1_4a)
+group1_4a <- ScaleData(group1_4a, features = genesp1_4a)
+group1_4a <- RunPCA(group1_4a, features = VariableFeatures(object = group1_4a), npcs = 10)
+
+genesp1_5a <- rownames(group1_5a)
+group1_5a <- ScaleData(group1_5a, features = genesp1_5a)
+group1_5a <- RunPCA(group1_5a, features = VariableFeatures(object = group1_5a), npcs = 10)
+
+genesp2_1a <- rownames(group2_1a)
+group2_1a <- ScaleData(group2_1a, features = genesp2_1a)
+group2_1a <- RunPCA(group2_1a, features = VariableFeatures(object = group2_1a), npcs = 10)
+
+genesp2_2a <- rownames(group2_2a)
+group2_2a <- ScaleData(group2_2a, features = genesp2_2a)
+group2_2a <- RunPCA(group2_2a, features = VariableFeatures(object = group2_2a), npcs = 10)
+
+genesp2_3a <- rownames(group2_3a)
+group2_3a <- ScaleData(group2_3a, features = genesp2_3a)
+group2_3a <- RunPCA(group2_3a, features = VariableFeatures(object = group2_3a), npcs = 10)
+
+genesp2_4a <- rownames(group2_4a)
+group2_4a <- ScaleData(group2_4a, features = genesp2_4a)
+group2_4a <- RunPCA(group2_4a, features = VariableFeatures(object = group2_4a), npcs = 10)
+
+genesp2_5a <- rownames(group2_5a)
+group2_5a <- ScaleData(group2_5a, features = genesp2_5a)
+group2_5a <- RunPCA(group2_5a, features = VariableFeatures(object = group2_5a), npcs = 10)
+
+genesp3_1a <- rownames(group3_1a)
+group3_1a <- ScaleData(group3_1a, features = genesp3_1a)
+group3_1a <- RunPCA(group3_1a, features = VariableFeatures(object = group3_1a), npcs = 10)
+
+genesp3_2a <- rownames(group3_2a)
+group3_2a <- ScaleData(group3_2a, features = genesp3_2a)
+group3_2a <- RunPCA(group3_2a, features = VariableFeatures(object = group3_2a), npcs = 10)
+
+genesp3_3a <- rownames(group3_3a)
+group3_3a <- ScaleData(group3_3a, features = genesp3_3a)
+group3_3a <- RunPCA(group3_3a, features = VariableFeatures(object = group3_3a), npcs = 10)
+
+genesp3_4a <- rownames(group3_4a)
+group3_4a <- ScaleData(group3_4a, features = genesp3_4a)
+group3_4a <- RunPCA(group3_4a, features = VariableFeatures(object = group3_4a), npcs = 10)
+
+genesp3_5a <- rownames(group3_5a)
+group3_5a <- ScaleData(group3_5a, features = genesp3_5a)
+group3_5a <- RunPCA(group3_5a, features = VariableFeatures(object = group3_5a), npcs = 10)
+
+DimPlot(group1_1a, reduction = "pca", cols = colorConesa(4, palette = "main")) 
+ggsave("../test_scMOSim/plots/PCA_ATAC_G1R1.pdf")
+DimPlot(group1_2a, reduction = "pca", cols = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/PCA_ATAC_G1R2.pdf")
+
+DimPlot(group2_1a, reduction = "pca", cols = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/PCA_ATAC_G2R1.pdf")
+DimPlot(group2_2a, reduction = "pca", cols = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/PCA_ATAC_G2R2.pdf")
+DimPlot(group3_1a, reduction = "pca", cols = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/PCA_ATAC_G3R1.pdf")
+DimPlot(group3_2a, reduction = "pca", cols = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/PCA_ATAC_G3R2.pdf")
+```
+
+```{r}
+group1_1a <- RunUMAP(group1_1a, dims = 1:10)
+group1_2a <- RunUMAP(group1_2a, dims = 1:10)
+group1_3a <- RunUMAP(group1_3a, dims = 1:10)
+group1_4a <- RunUMAP(group1_4a, dims = 1:10)
+group1_5a <- RunUMAP(group1_5a, dims = 1:10)
+group2_1a <- RunUMAP(group2_1a, dims = 1:10)
+group2_2a <- RunUMAP(group2_2a, dims = 1:10)
+group2_3a <- RunUMAP(group2_3a, dims = 1:10)
+group2_4a <- RunUMAP(group2_4a, dims = 1:10)
+group2_5a <- RunUMAP(group2_5a, dims = 1:10)
+group3_1a <- RunUMAP(group3_1a, dims = 1:10)
+group3_2a <- RunUMAP(group3_2a, dims = 1:10)
+group3_3a <- RunUMAP(group3_3a, dims = 1:10)
+group3_4a <- RunUMAP(group3_4a, dims = 1:10)
+group3_5a <- RunUMAP(group3_5a, dims = 1:10)
+DimPlot(group1_1a, reduction = "umap", cols = colorConesa(4, palette = "main")) 
+ggsave("../test_scMOSim/plots/UMAP_ATAC_G1R1.pdf")
+DimPlot(group1_2a, reduction = "umap", cols = colorConesa(4, palette = "main")) 
+ggsave("../test_scMOSim/plots/UMAP_ATAC_G1R2.pdf")
+DimPlot(group2_1a, reduction = "umap", cols = colorConesa(4, palette = "main")) 
+ggsave("../test_scMOSim/plots/UMAP_ATAC_G2R1.pdf")
+DimPlot(group2_2a, reduction = "umap", cols = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/UMAP_ATAC_G2R2.pdf")
+DimPlot(group3_1a, reduction = "umap", cols = colorConesa(4, palette = "main")) 
+ggsave("../test_scMOSim/plots/UMAP_ATAC_G3R1.pdf")
+DimPlot(group3_2a, reduction = "umap", cols = colorConesa(4, palette = "main"))
+ggsave("../test_scMOSim/plots/UMAP_ATAC_G3R2.pdf")
+```
+
+## Testing integration of scRNA to make sure everything is working as it should
+
+```{r}
+
+g1a <- list(g1_rep1 = group1_1a, g1_rep2 = group1_2a,
+           g1_rep3 = group1_3a, g1_rep4 = group1_4a, g1_rep5 = group1_5a)
+
+g2a <- list(g2_rep1 = group2_1a, g2_rep2 = group2_2a, 
+           g2_rep3 = group2_3a, g2_rep4 = group2_4a, 
+           g2_rep5 = group2_5a)
+
+g3a <- list(g3_rep1 = group3_1a, g3_rep2 = group3_2a, 
+           g3_rep3 = group3_3a, g3_rep4 = group3_4a, 
+           g3_rep5 = group3_5a)
+
+gtogethera <- list(g1_rep1 = group1_1a, g1_rep2 = group1_2a,
+           g1_rep3 = group1_3a, g1_rep4 = group1_4a, g1_rep5 = group1_5a, 
+           g2_rep1 = group2_1a, g2_rep2 = group2_2a, 
+           g2_rep3 = group2_3a, g2_rep4 = group2_4a, 
+           g2_rep5 = group2_5a, g3_rep1 = group3_1a, g3_rep2 = group3_2a, 
+           g3_rep3 = group3_3a, g3_rep4 = group3_4a, 
+           g3_rep5 = group3_5a)
+
+# normalize and identify variable features for each dataset independently
+g1a <- lapply(X = g1a, FUN = function(x) {
+    x <- NormalizeData(x)
+    x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+
+# normalize and identify variable features for each dataset independently
+g2a <- lapply(X = g2a, FUN = function(x) {
+    x <- NormalizeData(x)
+    x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+
+# normalize and identify variable features for each dataset independently
+g3a <- lapply(X = g3a, FUN = function(x) {
+    x <- NormalizeData(x)
+    x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+
+# normalize and identify variable features for each dataset independently
+gtogethera <- lapply(X = gtogethera, FUN = function(x) {
+    x <- NormalizeData(x)
+    x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+
+# select features that are repeatedly variable across datasets for integration
+featuresg1a <- SelectIntegrationFeatures(object.list = g1a)
+
+immune.anchorsg1a <- FindIntegrationAnchors(object.list = g1a, anchor.features = featuresg1a)
+immune.combinedg1a <- IntegrateData(anchorset = immune.anchorsg1a, k.weight = 40)
+
+# specify that we will perform downstream analysis on the corrected data note that the
+# original unmodified data still resides in the 'RNA' assay
+DefaultAssay(immune.combinedg1a) <- "integrated"
+
+# Run the standard workflow for visualization and clustering
+immune.combinedg1a <- ScaleData(immune.combinedg1a, verbose = FALSE)
+immune.combinedg1a <- RunPCA(immune.combinedg1a, npcs = 30, verbose = FALSE)
+immune.combinedg1a <- RunUMAP(immune.combinedg1a, reduction = "pca", dims = 1:30)
+immune.combinedg1a <- FindNeighbors(immune.combinedg1a, reduction = "pca", dims = 1:30)
+immune.combinedg1a <- FindClusters(immune.combinedg1a, resolution = 0.5)
+
+# Visualization
+p1g1 <- DimPlot(immune.combinedg1a, reduction = "umap", group.by = "Rep", cols=colorConesa(3, palette = "main"))
+p2g1 <- DimPlot(immune.combinedg1a, reduction = "umap", label = FALSE, cols = colorConesa(6, palette = "main"))
+p1g1 + p2g1
+ggsave("../test_scMOSim/plots/umap_rep_ATAC_cells_G1.pdf")
+
+p1g1 <- DimPlot(immune.combinedg1a, reduction = "pca", group.by = "Rep", cols=colorConesa(3, palette = "main"))
+p2g1 <- DimPlot(immune.combinedg1a, reduction = "pca", label = FALSE, cols = colorConesa(6, palette = "main"))
+p1g1 + p2g1
+ggsave("../test_scMOSim/plots/pca_rep_ATAC_cells_G1.pdf")
+
+
+
+# select features that are repeatedly variable across datasets for integration
+featuresg2a <- SelectIntegrationFeatures(object.list = g2a)
+
+immune.anchorsg2a <- FindIntegrationAnchors(object.list = g2a, anchor.features = featuresg2a)
+immune.combinedg2a <- IntegrateData(anchorset = immune.anchorsg2a, k.weight = 40)
+
+# specify that we will perform downstream analysis on the corrected data note that the
+# original unmodified data still resides in the 'RNA' assay
+DefaultAssay(immune.combinedg2a) <- "integrated"
+
+# Run the standard workflow for visualization and clustering
+immune.combinedg2a <- ScaleData(immune.combinedg2a, verbose = FALSE)
+immune.combinedg2a <- RunPCA(immune.combinedg2a, npcs = 30, verbose = FALSE)
+immune.combinedg2a <- RunUMAP(immune.combinedg2a, reduction = "pca", dims = 1:30)
+immune.combinedg2a <- FindNeighbors(immune.combinedg2a, reduction = "pca", dims = 1:30)
+immune.combinedg2a <- FindClusters(immune.combinedg2a, resolution = 0.5)
+
+# Visualization
+p1g1 <- DimPlot(immune.combinedg2a, reduction = "umap", group.by = "Rep", cols=colorConesa(3, palette = "main"))
+p2g1 <- DimPlot(immune.combinedg2a, reduction = "umap", label = FALSE, cols = colorConesa(6, palette = "main"))
+p1g1 + p2g1
+ggsave("../test_scMOSim/plots/umap_rep_ATAC_cells_G2.pdf")
+
+p1g1 <- DimPlot(immune.combinedg2a, reduction = "pca", group.by = "Rep", cols=colorConesa(3, palette = "main"))
+p2g1 <- DimPlot(immune.combinedg2a, reduction = "pca", label = FALSE, cols = colorConesa(6, palette = "main"))
+p1g1 + p2g1
+ggsave("../test_scMOSim/plots/pca_rep_ATAC_cells_G2.pdf")
+
+
+
+# select features that are repeatedly variable across datasets for integration
+featuresg3a <- SelectIntegrationFeatures(object.list = g3a)
+
+immune.anchorsg3a <- FindIntegrationAnchors(object.list = g3a, anchor.features = featuresg3)
+immune.combinedg3a <- IntegrateData(anchorset = immune.anchorsg3a, k.weight = 40)
+
+# specify that we will perform downstream analysis on the corrected data note that the
+# original unmodified data still resides in the 'RNA' assay
+DefaultAssay(immune.combinedg3a) <- "integrated"
+
+# Run the standard workflow for visualization and clustering
+immune.combinedg3a <- ScaleData(immune.combinedg3a, verbose = FALSE)
+immune.combinedg3a <- RunPCA(immune.combinedg3a, npcs = 30, verbose = FALSE)
+immune.combinedg3a <- RunUMAP(immune.combinedg3a, reduction = "pca", dims = 1:30)
+immune.combinedg3a <- FindNeighbors(immune.combinedg3a, reduction = "pca", dims = 1:30)
+immune.combinedg3a <- FindClusters(immune.combinedg3a, resolution = 0.5)
+
+# Visualization
+p1g1 <- DimPlot(immune.combinedg3a, reduction = "umap", group.by = "Rep", cols=colorConesa(3, palette = "main"))
+p2g1 <- DimPlot(immune.combinedg3a, reduction = "umap", label = FALSE, cols = colorConesa(6, palette = "main"))
+p1g1 + p2g1
+ggsave("../test_scMOSim/plots/umap_rep_ATAC_cells_G3.pdf")
+
+p1g1 <- DimPlot(immune.combinedg3a, reduction = "pca", group.by = "Rep", cols=colorConesa(3, palette = "main"))
+p2g1 <- DimPlot(immune.combinedg3a, reduction = "pca", label = FALSE, cols = colorConesa(6, palette = "main"))
+p1g1 + p2g1
+ggsave("../test_scMOSim/plots/pca_rep_ATAC_cells_G3.pdf")
+```
+
+```{r}
+# select features that are repeatedly variable across datasets for integration
+featurestogethera <- SelectIntegrationFeatures(object.list = gtogethera)
+
+immune.anchorstogethera <- FindIntegrationAnchors(object.list = gtogethera, anchor.features = featurestogethera)
+immune.combinedtogethera <- IntegrateData(anchorset = immune.anchorstogethera, k.weight = 40)
+
+# specify that we will perform downstream analysis on the corrected data note that the
+# original unmodified data still resides in the 'RNA' assay
+DefaultAssay(immune.combinedtogethera) <- "integrated"
+
+# Run the standard workflow for visualization and clustering
+immune.combinedtogethera <- ScaleData(immune.combinedtogethera, verbose = FALSE)
+immune.combinedtogethera <- RunPCA(immune.combinedtogethera, npcs = 30, verbose = FALSE)
+immune.combinedtogethera <- RunUMAP(immune.combinedtogethera, reduction = "pca", dims = 1:30)
+immune.combinedtogethera <- FindNeighbors(immune.combinedtogethera, reduction = "pca", dims = 1:30)
+immune.combinedtogethera <- FindClusters(immune.combinedtogethera, resolution = 0.5)
+
+# Visualization
+p1g1 <- DimPlot(immune.combinedtogethera, reduction = "umap", group.by = "Group", cols = colorConesa(3, palette = "main"))
+p2g1 <- DimPlot(immune.combinedtogethera, reduction = "umap", label = FALSE, cols = colorConesa(6, palette = "main"))
+p1g1 + p2g1
+ggsave("../test_scMOSim/plots/umap_group_ATAC_cells_G1G2G3.pdf")
+
+DimPlot(immune.combinedtogethera, reduction = "umap", group.by = "Rep", cols = colorConesa(5, palette = "main"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+
+# Put coexpressed matrix into single cell experiment
+df <- coexpr_results$sim_matrix
+df <- as.data.frame(df)
+rownames(df) <- df$feature
+df$feature <- NULL
+
+rownames(df) <- paste0("Feature", seq(1, 8000))
+colnames(df) <- paste0("Cell", seq(1, 1000))
+#colData <- tibble(Cell = colnames(df), 
+#                  Group = paste0("Group", rep(c(1, 2, 3, 4), each = 250)))
+
+colData <- tibble(Cell = colnames(df), 
+                  Group = symsim_sce$Group)
+
+tibble::tibble(Cell = colnames(sim$Group_1$Rep_1$`sim_scRNA-seq`@assays$RNA@counts),
+                            cell_type = rep(names(cell_types), times = lengths(cell_types)))
+
+symsim_coex_sce <- SingleCellExperiment(
+  assays = list(counts = df, 
+                logcounts = log2(df+1)),
+  colData = colData)
+```
+
+```{r}
+# Load from SingleCellExperiment into Seurat
+symsim_coex_sce <- runPCA(symsim_coex_sce)
+symsim_coex_sce <- runTSNE(symsim_coex_sce, perplexity=10)
+symsim_coex_sce <- runUMAP(symsim_coex_sce)
+
+p1 <- plotExpression(symsim_coex_sce, features = "Feature1", x = "Group") + theme(axis.text.x = element_text(angle = 45, 
+    hjust = 1))
+p2 <- plotPCA(symsim_coex_sce, colour_by = "Group")
+p1 + p2
+
+# Load SingleCellExperiment into Seurat and test
+symsim_coex_seurat <- CreateSeuratObject(counts = assay(symsim_coex_sce, "counts"), data = assay(symsim_coex_sce, "logcounts"))
+symsim_coex_seurat <- NormalizeData(object = symsim_coex_seurat, normalization.method = "LogNormalize", 
+    scale.factor = 10000)
+# Checking with a couple of plots
+symsim_coex_seurat <- FindVariableFeatures(object = symsim_coex_seurat, selection.method = "vst", nfeatures = 3000)
+# Check number of variable features
+length(symsim_coex_seurat@assays$RNA@var.features) # 2000  DE  are the default
+
+# Plot most variable features
+# Identify the 10 most highly variable genes
+top10 <- head(VariableFeatures(symsim_coex_seurat), 10)
+
+# plot variable features with and without labels
+plot1 <- VariableFeaturePlot(symsim_coex_seurat)
+plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
+plot2
+
+# Scale so mean expression accross cells is 0 and variance of genes between cells is 1
+symsim_coex_seurat <- ScaleData(symsim_coex_seurat, features = rownames(symsim_coex_seurat))
+
+# Run first 5 PCAs and the 5 representative features in each PCA
+symsim_coex_seurat <- RunPCA(symsim_coex_seurat, features = VariableFeatures(object = symsim_coex_seurat))
+
+print(symsim_coex_seurat[["pca"]], dims = 1:5, nfeatures = 5)
+
+VizDimLoadings(symsim_coex_seurat, dims = 1:2, reduction = "pca")
+
+DimPlot(symsim_coex_seurat, reduction = "pca")
+
+# Setting "cells" gets the extreme cells on both ends of the expectrum
+DimHeatmap(symsim_coex_seurat, dims = 1, cells = 500, balanced = TRUE)
+
+# Cluster by nearest neighbour
+symsim_coex_seurat <- FindNeighbors(symsim_coex_seurat, dims = 1:10)
+symsim_coex_seurat <- FindClusters(symsim_coex_seurat, resolution = 0.5) # Finds our 8 celltypes
+
+# Run umap
+symsim_coex_seurat <- RunUMAP(symsim_coex_seurat, dims = 1:10)
+DimPlot(symsim_coex_seurat, reduction = "umap")
+
+FeaturePlot(symsim_coex_seurat, features = c("Feature1", "Feature1000"))
+
+# Find gene markers from every cluster
+symsim_coex_seurat.markers <- FindAllMarkers(symsim_coex_seurat, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+
+symsim_coex_seurat.markers %>%
+    group_by(cluster) %>%
+    top_n(n = 10, wt = avg_log2FC) -> top10
+DoHeatmap(symsim_coex_seurat, features = top10$gene) + NoLegend()
+```
+
+```{r}
+# Check distributions
+
+df <- lapply(df,as.numeric) #switch from interger to numeric
+df <- as.data.frame(df) # transform list to dataframe
+
+net <- blockwiseModules(df, power = 6,
+                        TOMType = "unsigned", minModuleSize = 30,
+                        reassignThreshold = 0, mergeCutHeight = 0.25,
+                        numericLabels = TRUE, pamRespectsDendro = FALSE,
+                        saveTOMs = TRUE,
+                        saveTOMFileBase = "femaleMouseTOM",
+                        verbose = 3)
+
+# check how many modules identified
+table(net$colors)
+
+# plot the modules
+# open a graphics window
+sizeGrWindow(12, 9)
+# Convert labels to colors for plotting
+mergedColors = labels2colors(net$colors)
+# Plot the dendrogram and the module colors underneath
+plotDendroAndColors(net$dendrograms[[1]], mergedColors[net$blockGenes[[1]]],
+  "Module colors",
+  dendroLabels = FALSE, hang = 0.03,
+  addGuide = TRUE, guideHang = 0.05)
+
+
+# Calculate topological overlap anew: this could be done more efficiently by saving the TOM
+# calculated during module detection, but let us do it again here.
+dissTOM = 1-TOMsimilarityFromExpr(df, power = 6);
+geneTree = hclust(as.dist(dissTOM), method = "average")
+# Transform dissTOM with a power to make moderately strong connections more visible in the heatmap
+plotTOM = dissTOM^7;
+# Set diagonal to NA for a nicer plot
+diag(plotTOM) = NA;
+# Call the plot function
+sizeGrWindow(9,9)
+TOMplot(plotTOM, geneTree, mergedColors, main = "Network heatmap plot, all genes")
+```
+
+```{r}
+# Check distribution
+library(fitdistrplus)
+descdist(df$Cell1, discrete = TRUE, boot = 1000, method = "unbiased")
+
+gofstat(list(fitdist(df$Cell1, "pois"), fitdist(df$Cell1, "nbinom")), fitnames = c("poison", "negative binomial"))
+
+cdfcomp(list(fitdist(df$Cell1, "pois"), fitdist(df$Cell1, "nbinom")), legendtext = c("poisson", "negative binomial"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
