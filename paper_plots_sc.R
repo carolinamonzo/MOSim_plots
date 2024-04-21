@@ -7,10 +7,14 @@ suppressPackageStartupMessages({
   library(acorde)
 })
 
-set.seed(123)
+set.seed(000)
 # ## Plots for paper
 
 sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_scMOSim_few_2602.rds")
+
+sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_scMOSim_2groups_000.rds")
+
+numcells <- "many_RNA_G1R1"
 results <- scOmicResults(sim)
 settings <- scOmicSettings(sim)
 
@@ -21,7 +25,7 @@ settings <- scOmicSettings(sim)
 # Extract group one
 data <- as.data.frame(results$Group_1$Rep_1$`sim_scRNA-seq`@counts)
 # Keep only genes in co-expression clusters
-asocG1 <- settings$AssociationMatrix_Group_1[settings$AssociationMatrix_Group_1$Gene_cluster %in% c(1:6),]
+asocG1 <- settings$AssociationMatrix_Group_1[settings$AssociationMatrix_Group_1$Gene_cluster %in% c(1:14),]
 data <- data[asocG1$Gene_ID,]
 # Scale data and make means per celltype
 coexpr.scaled <- acorde::scale_isoforms(data, isoform_col = NULL)
@@ -43,13 +47,15 @@ calculate_mean_per_list_df <- function(df, named_lists) {
   return(means_df)
 }
 
+cell_types <- sim$cellTypes
+
 coexpr.scaled.celltype <- calculate_mean_per_list_df(coexpr.scaled.celltype, cell_types)
 
 #rownames(coexpr.scaled.celltype) <- coexpr.scaled$transcript
 
 ### kmeans
 max_itr <-  50
-n_clust  <-  8  ## number of cluster 
+n_clust  <-  14  ## number of cluster 
 set.seed(123) ## reproduce the cluster 
 kmeans_out  <- kmeans(coexpr.scaled.celltype,n_clust,iter.max = max_itr)
 # With cluster info from the kmeans
@@ -78,12 +84,10 @@ data_with_cust_info %>%
   theme_bw() +  
   theme(legend.position = "none" , axis.text.x = element_text(angle = 45 , vjust = 0.4)) +
   facet_wrap(~clust, ncol = 3)
-ggsave("~/workspace/1_conesalab/test_scMOSim/paper_plots/2A_kmeans.pdf")
+ggsave(paste0("~/workspace/1_conesalab/test_scMOSim/paper_plots/many_2A_", numcells, "_kmeans.pdf"))
 
 ## Now let's check the cluster assignment from kmeans compared to the forced cluster
 # in the association matrix
-
-# First we need to make Angeles' visualization
 
 
 

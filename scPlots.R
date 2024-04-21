@@ -10,12 +10,12 @@ suppressPackageStartupMessages({
 })
 library(pbmcMultiome.SeuratData)
 
-set.seed(001)
+set.seed(000)
 
-#sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_scMOSim_few_2602.rds")
+sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_scMOSim_few_2602.rds")
 
 ## Plotting big sample
-sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_scMOSim_2groups_000.rds")
+#sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_scMOSim_2groups_000.rds")
 
 results <- scOmicResults(sim)
 settings <- scOmicSettings(sim)
