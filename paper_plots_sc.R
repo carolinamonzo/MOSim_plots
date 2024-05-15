@@ -14,11 +14,9 @@ set.seed(000)
 
 #sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_scMOSim_few_2602.rds")
 
-#sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_scMOSim_2groups_000.rds")
+sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_6cells11clus8800_scMOSim_2groups_000.rds")
 
-sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_7cells8clus_scMOSim_2groups_001.rds")
-
-numcells <- "many_RNA_G1R1"
+numcells <- "many_RNA_G2R1"
 results <- scOmicResults(sim)
 settings <- scOmicSettings(sim, TF = TRUE)
 
@@ -27,9 +25,9 @@ settings <- scOmicSettings(sim, TF = TRUE)
 # follow a co-expression pattern.
 
 # Extract group one
-data <- as.data.frame(results$Group_1$Rep_1$`sim_scRNA-seq`@counts)
+data <- as.data.frame(results$Group_2$Rep_1$`sim_scRNA-seq`@counts)
 # Keep only genes in co-expression clusters
-asocG1 <- settings$AssociationMatrix_Group_1[settings$AssociationMatrix_Group_1$Gene_cluster %in% c(1:9),]
+asocG1 <- settings$AssociationMatrix_Group_2[settings$AssociationMatrix_Group_2$Gene_cluster %in% c(1:9),]
 data <- data[asocG1$Gene_ID,]
 # Scale data and make means per celltype
 coexpr.scaled <- acorde::scale_isoforms(data, isoform_col = NULL)

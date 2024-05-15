@@ -12,10 +12,10 @@ library(pbmcMultiome.SeuratData)
 
 set.seed(000)
 
-sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_scMOSim_few_2602.rds")
+#sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_scMOSim_few_2602.rds")
 
 ## Plotting big sample
-#sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_scMOSim_2groups_000.rds")
+sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_6cells11clus8800_scMOSim_2groups_000.rds")
 
 results <- scOmicResults(sim)
 settings <- scOmicSettings(sim)
@@ -23,7 +23,7 @@ settings <- scOmicSettings(sim)
 
 ## Let's try Angeles' visualization.
 
-st <- "G3R1"
+st <- "G2R1"
 
 coexpr.scaled <- acorde::scale_isoforms(sim$Group_2$Rep_1$`sim_scRNA-seq`@counts, 
                                         isoform_col = NULL)

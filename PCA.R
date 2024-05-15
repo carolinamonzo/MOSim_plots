@@ -12,12 +12,12 @@ library(pbmcMultiome.SeuratData)
 
 set.seed(000)
 
-sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_scMOSim_few_2602.rds")
+sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_6cells11clus8800_scMOSim_2groups_000.rds")
 
-numcells <- "few_RNA_G1R1"
+numcells <- "RNA_G2R1"
 
 # Normalize using Seurat's method
-dat <- Seurat::CreateSeuratObject(sim$Group_1$Rep_1$`sim_scRNA-seq`@counts)
+dat <- Seurat::CreateSeuratObject(sim$Group_2$Rep_1$`sim_scRNA-seq`@counts)
 dat <- Seurat::SCTransform(dat, verbose = FALSE, return.only.var.genes = FALSE)
 
 # Create cell-tocelltype ID table
@@ -47,7 +47,7 @@ ggsave(width = 3, height = 2, filename = paste0("~/workspace/1_conesalab/test_sc
 
 
 ## Now K-means starting from the log2 normalized
-asocG2 <- sim$AssociationMatrices$AssociationMatrix_Group_1[sim$AssociationMatrices$AssociationMatrix_Group_1$Gene_cluster %in% c(1:8),]
+asocG2 <- sim$AssociationMatrices$AssociationMatrix_Group_2[sim$AssociationMatrices$AssociationMatrix_Group_2$Gene_cluster %in% c(1:11),]
 data <- as.data.frame(dat[["SCT"]]$data)
 data <- data[rownames(data) %in% asocG2$Gene_ID,]
 
@@ -70,8 +70,8 @@ cell_types <- sim$cellTypes
 
 coexpr.scaled.celltype <- calculate_mean_per_list_df(coexpr.scaled.celltype, cell_types)
 
-max_itr <-  50
-n_clust  <-  8  ## number of cluster 
+max_itr <-  100
+n_clust  <-  11  ## number of cluster 
 
 ## Remove NAs
 
@@ -104,7 +104,7 @@ data_with_cust_info %>%
   theme_bw() +  
   theme(legend.position = "none" , axis.text.x = element_text(angle = 45 , vjust = 0.4)) +
   facet_wrap(~clust, ncol = 4)
-ggsave(paste0("~/workspace/1_conesalab/test_scMOSim/paper_plots/few_2A", numcells, "_kmeans.pdf"))
+ggsave(paste0("~/workspace/1_conesalab/test_scMOSim/paper_plots/2A_", numcells, "_kmeans.pdf"))
 
 
 ## Now let's check the cluster assignment from kmeans compared to the forced cluster
@@ -142,4 +142,4 @@ data_with_oricust_info %>%
   theme_bw() +  
   theme(legend.position = "none" , axis.text.x = element_text(angle = 45 , vjust = 0.4)) +
   facet_wrap(~ori_clust, ncol = 4)
-ggsave(paste0("~/workspace/1_conesalab/test_scMOSim/paper_plots/original_few_2A_", numcells, "_kmeans.pdf"))
+ggsave(paste0("~/workspace/1_conesalab/test_scMOSim/paper_plots/original_2A_", numcells, "_kmeans.pdf"))

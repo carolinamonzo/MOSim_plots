@@ -13,8 +13,6 @@ library(Seurat)
 library(tidyverse)
 library(pbmcMultiome.SeuratData)
 
-set.seed(001)
-
 ## MAKING BIG DATASET FOR EXAMPLE IN PAPER
 omics_types <- c("scRNA-seq", "scATAC-seq")
 
@@ -25,7 +23,7 @@ for (omics in omics_types){
       if(omics == "scRNA-seq"){
         dat <- pbmcMultiome.SeuratData::pbmc.rna
         dat <- subset(x = dat, subset = seurat_annotations %in% c("CD4 TEM", 
-                      "cDC", "Memory B", "Treg", "Plasma", "NK", "CD16 Mono"))
+                      "cDC", "Memory B", "Treg", "NK", "CD16 Mono"))
         unique_cell_types <- unique(dat@meta.data$seurat_annotations)
         extracted_cells <- list()
         cellnames <- c()
@@ -41,7 +39,7 @@ for (omics in omics_types){
       } else if (omics == "scATAC-seq"){
         dat <- pbmcMultiome.SeuratData::pbmc.atac
         dat <- subset(x = dat, subset = seurat_annotations %in% c("CD4 TEM", 
-                      "cDC", "Memory B", "Treg", "Plasma", "NK", "CD16 Mono"))
+                      "cDC", "Memory B", "Treg", "NK", "CD16 Mono"))
         unique_cell_types <- unique(dat@meta.data$seurat_annotations)
         extracted_cells <- list()
         for (cell_type in unique_cell_types) {
@@ -70,9 +68,9 @@ for (char in unique(cellnames)){
   cell_types[[char]] <- char_positions
 }
 
-sim <- scMOSim(omicsList, cell_types, numberReps = 5, numberGroups = 2,
+sim <- scMOSim(omicsList, cell_types, numberReps = 3, numberGroups = 2,
                diffGenes = list(c(0.3, 0.2)), noiseRep = 0.1,
-               noiseGroup = 0.3, clusters = 14, feature_no = 11200,
-               regulatorEffect = list(c(0.2, 0.1), c(0.1, 0.3)))
+               noiseGroup = 0.3, clusters = 11, feature_no = 8800,
+               regulatorEffect = list(c(0.2, 0.1), c(0.1, 0.3)), TF = TRUE)
 
-saveRDS(object = sim, file = paste0('~/workspace/mosim_paper/sim_scMOSim_2groups_', s, '.rds'))
+saveRDS(object = sim, file = paste0('~/workspace/mosim_paper/sim_6cells11clus8800_scMOSim_2groups_', s, '.rds'))
