@@ -23,6 +23,7 @@ dat <- Seurat::SCTransform(dat, verbose = FALSE, return.only.var.genes = FALSE)
 ct <- tibble::tibble(Cell = colnames(dat[["SCT"]]$data),
                      cell_type = rep(names(sim$cellTypes), times = lengths(sim$cellTypes)))
 
+
 ## Now K-means starting from the log2 normalized
 asocG2 <- sim$AssociationMatrices$AssociationMatrix_Group_2[sim$AssociationMatrices$AssociationMatrix_Group_2$Peak_cluster %in% c(1:8),]
 data <- as.data.frame(dat[["SCT"]]$data)
