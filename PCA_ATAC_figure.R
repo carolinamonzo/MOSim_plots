@@ -14,35 +14,35 @@ set.seed(000)
 
 sim <- readRDS("~/workspace/mosim_paper/sim_6cells11clus8800_scMOSim_2groups_000.rds")
 
-numcells <- "RNA"
+numcells <- "ATAC"
 
 # Normalize using Seurat's method
-datG1R1 <- Seurat::CreateSeuratObject(sim$Group_1$Rep_1$`sim_scRNA-seq`@counts)
+datG1R1 <- Seurat::CreateSeuratObject(sim$Group_1$Rep_1$`sim_scATAC-seq`@counts)
 datG1R1 <- Seurat::SCTransform(datG1R1, verbose = FALSE, return.only.var.genes = FALSE)
 datG1R1 <- as.data.frame(datG1R1[["SCT"]]$data)
 names(datG1R1) <- paste0(names(datG1R1), "_G1R1")
 
-datG1R2 <- Seurat::CreateSeuratObject(sim$Group_1$Rep_2$`sim_scRNA-seq`@counts)
+datG1R2 <- Seurat::CreateSeuratObject(sim$Group_1$Rep_2$`sim_scATAC-seq`@counts)
 datG1R2 <- Seurat::SCTransform(datG1R2, verbose = FALSE, return.only.var.genes = FALSE)
 datG1R2 <- as.data.frame(datG1R2[["SCT"]]$data)
 names(datG1R2) <- paste0(names(datG1R2), "_G1R2")
 
-datG1R3 <- Seurat::CreateSeuratObject(sim$Group_1$Rep_3$`sim_scRNA-seq`@counts)
+datG1R3 <- Seurat::CreateSeuratObject(sim$Group_1$Rep_3$`sim_scATAC-seq`@counts)
 datG1R3 <- Seurat::SCTransform(datG1R3, verbose = FALSE, return.only.var.genes = FALSE)
 datG1R3 <- as.data.frame(datG1R3[["SCT"]]$data)
 names(datG1R3) <- paste0(names(datG1R3), "_G1R3")
 
-datG2R1 <- Seurat::CreateSeuratObject(sim$Group_2$Rep_1$`sim_scRNA-seq`@counts)
+datG2R1 <- Seurat::CreateSeuratObject(sim$Group_2$Rep_1$`sim_scATAC-seq`@counts)
 datG2R1 <- Seurat::SCTransform(datG2R1, verbose = FALSE, return.only.var.genes = FALSE)
 datG2R1 <- as.data.frame(datG2R1[["SCT"]]$data)
 names(datG2R1) <- paste0(names(datG2R1), "_G2R1")
 
-datG2R2 <- Seurat::CreateSeuratObject(sim$Group_2$Rep_2$`sim_scRNA-seq`@counts)
+datG2R2 <- Seurat::CreateSeuratObject(sim$Group_2$Rep_2$`sim_scATAC-seq`@counts)
 datG2R2 <- Seurat::SCTransform(datG2R2, verbose = FALSE, return.only.var.genes = FALSE)
 datG2R2 <- as.data.frame(datG2R2[["SCT"]]$data)
 names(datG2R2) <- paste0(names(datG2R2), "_G2R2")
 
-datG2R3 <- Seurat::CreateSeuratObject(sim$Group_2$Rep_3$`sim_scRNA-seq`@counts)
+datG2R3 <- Seurat::CreateSeuratObject(sim$Group_2$Rep_3$`sim_scATAC-seq`@counts)
 datG2R3 <- Seurat::SCTransform(datG2R3, verbose = FALSE, return.only.var.genes = FALSE)
 datG2R3 <- as.data.frame(datG2R3[["SCT"]]$data)
 names(datG2R3) <- paste0(names(datG2R3), "_G2R3")
