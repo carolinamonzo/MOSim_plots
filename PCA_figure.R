@@ -155,7 +155,7 @@ pca_sc$x %>% as_tibble(rownames = "Cell") %>% full_join(repeated_ct, by = "Cell"
   xlab(paste0("PC1 (", round(summary(pca_sc)$importance[2,1]*100, 1),"%)")) +
   ylab(paste0("PC2 (", round(summary(pca_sc)$importance[2,2]*100, 1),"%)")) +
   #theme_classic(base_size = 10) +
-  scale_color_manual(values = c("#7332a7", "#3bdfa2"))
+  scale_color_manual(values = c("#d0b0d4", "#64c298"))
 
 ggsave(width = 3.235, height = 1.7, filename = paste0("./paper_plots/", numcells, "PCA_PC1_PC2_group.pdf"))
 
@@ -168,7 +168,7 @@ pca_sc$x %>% as_tibble(rownames = "Cell") %>% full_join(repeated_ct, by = "Cell"
   xlab(paste0("PC1 (", round(summary(pca_sc)$importance[2,1]*100, 1),"%)")) +
   ylab(paste0("PC3 (", round(summary(pca_sc)$importance[2,2]*100, 1),"%)")) +
   #theme_classic(base_size = 10) +
-  scale_color_manual(values = c("#7332a7", "#3bdfa2"))
+  scale_color_manual(values = c("#d0b0d4", "#64c298"))
 ggsave(width = 3.235, height = 1.7, filename = paste0("./paper_plots/", numcells, "PCA_PC1_PC3_group.pdf"))
 
 
@@ -180,7 +180,7 @@ pca_sc$x %>% as_tibble(rownames = "Cell") %>% full_join(repeated_ct, by = "Cell"
   xlab(paste0("PC1 (", round(summary(pca_sc)$importance[2,1]*100, 1),"%)")) +
   ylab(paste0("PC4 (", round(summary(pca_sc)$importance[2,2]*100, 1),"%)")) +
   #theme_classic(base_size = 10) +
-  scale_color_manual(values = c("#7332a7", "#3bdfa2"))
+  scale_color_manual(values = c("#d0b0d4", "#64c298"))
 ggsave(width = 3.235, height = 1.7, filename = paste0("./paper_plots/", numcells, "PCA_PC1_PC4_group.pdf"))
 
 
@@ -193,7 +193,7 @@ pca_sc$x %>% as_tibble(rownames = "Cell") %>% full_join(repeated_ct, by = "Cell"
   xlab(paste0("PC2 (", round(summary(pca_sc)$importance[2,1]*100, 1),"%)")) +
   ylab(paste0("PC3 (", round(summary(pca_sc)$importance[2,2]*100, 1),"%)")) +
   #theme_classic(base_size = 10) +
-  scale_color_manual(values = c("#7332a7", "#3bdfa2"))
+  scale_color_manual(values = c("#d0b0d4", "#64c298"))
 
 ggsave(width = 3.235, height = 1.7, filename = paste0("./paper_plots/", numcells, "PCA_PC2_PC3_group.pdf"))
 
@@ -205,7 +205,7 @@ pca_sc$x %>% as_tibble(rownames = "Cell") %>% full_join(repeated_ct, by = "Cell"
   xlab(paste0("PC3 (", round(summary(pca_sc)$importance[2,1]*100, 1),"%)")) +
   ylab(paste0("PC4 (", round(summary(pca_sc)$importance[2,2]*100, 1),"%)")) +
   #theme_classic(base_size = 10) +
-  scale_color_manual(values = c("#7332a7", "#3bdfa2"))
+  scale_color_manual(values = c("#d0b0d4", "#64c298"))
 
 ggsave(width = 3.235, height = 1.7, filename = paste0("./paper_plots/", numcells, "PCA_PC3_PC4_group.pdf"))
 
@@ -220,7 +220,7 @@ pca_sc$x %>% as_tibble(rownames = "Cell") %>% full_join(repeated_ct, by = "Cell"
   xlab(paste0("PC1 (", round(summary(pca_sc)$importance[2,1]*100, 1),"%)")) +
   ylab(paste0("PC2 (", round(summary(pca_sc)$importance[2,2]*100, 1),"%)")) +
   #theme_classic(base_size = 10) +
-  scale_color_manual(values = c("#d6b0e9", "#d0ef3f", "#6CD0D0"))
+  scale_color_manual(values = c("#713f98", "#d11d57", "#efefa1"))
 
 ggsave(width = 3.45, height = 1.7, filename = paste0("./paper_plots/", numcells, "PCA_PC1_PC2_replicate.pdf"))
 
@@ -233,7 +233,7 @@ pca_sc$x %>% as_tibble(rownames = "Cell") %>% full_join(repeated_ct, by = "Cell"
   xlab(paste0("PC1 (", round(summary(pca_sc)$importance[2,1]*100, 1),"%)")) +
   ylab(paste0("PC3 (", round(summary(pca_sc)$importance[2,2]*100, 1),"%)")) +
   #theme_classic(base_size = 10) +
-  scale_color_manual(values = c("#d6b0e9", "#d0ef3f", "#6CD0D0"))
+  scale_color_manual(values = c("#713f98", "#d11d57", "#efefa1"))
 ggsave(width = 3.45, height = 1.7, filename = paste0("./paper_plots/", numcells, "PCA_PC1_PC3_replicate.pdf"))
 
 
@@ -245,7 +245,7 @@ pca_sc$x %>% as_tibble(rownames = "Cell") %>% full_join(repeated_ct, by = "Cell"
   xlab(paste0("PC1 (", round(summary(pca_sc)$importance[2,1]*100, 1),"%)")) +
   ylab(paste0("PC4 (", round(summary(pca_sc)$importance[2,2]*100, 1),"%)")) +
   #theme_classic(base_size = 10) +
-  scale_color_manual(values = c("#d6b0e9", "#d0ef3f", "#6CD0D0"))
+  scale_color_manual(values = c("#713f98", "#d11d57", "#efefa1"))
 ggsave(width = 3.45, height = 1.7, filename = paste0("./paper_plots/", numcells, "PCA_PC1_PC4_replicate.pdf"))
 
 
@@ -258,7 +258,7 @@ pca_sc$x %>% as_tibble(rownames = "Cell") %>% full_join(repeated_ct, by = "Cell"
   xlab(paste0("PC2 (", round(summary(pca_sc)$importance[2,1]*100, 1),"%)")) +
   ylab(paste0("PC3 (", round(summary(pca_sc)$importance[2,2]*100, 1),"%)")) +
   #theme_classic(base_size = 10) +
-  scale_color_manual(values = c("#d6b0e9", "#d0ef3f", "#6CD0D0"))
+  scale_color_manual(values = c("#713f98", "#d11d57", "#efefa1"))
 
 ggsave(width = 3.45, height = 1.7, filename = paste0("./paper_plots/", numcells, "PCA_PC2_PC3_replicate.pdf"))
 
@@ -270,7 +270,7 @@ pca_sc$x %>% as_tibble(rownames = "Cell") %>% full_join(repeated_ct, by = "Cell"
   xlab(paste0("PC3 (", round(summary(pca_sc)$importance[2,1]*100, 1),"%)")) +
   ylab(paste0("PC4 (", round(summary(pca_sc)$importance[2,2]*100, 1),"%)")) +
   #theme_classic(base_size = 10) +
-  scale_color_manual(values = c("#d6b0e9", "#d0ef3f", "#6CD0D0"))
+  scale_color_manual(values = c("#713f98", "#d11d57", "#efefa1"))
 
 ggsave(width = 3.45, height = 1.7, filename = paste0("./paper_plots/", numcells, "PCA_PC3_PC4_replicate.pdf"))
 
