@@ -1,5 +1,15 @@
-setwd("~/workspace/1_conesalab/MOSim")
-devtools::load_all()
+library(argparser)
+
+parser <- arg_parser("parse")
+parser <- add_argument(parser, "--seed", help = "seed")
+
+args <- parse_args(parser)
+
+s <- args$seed
+set.seed(s)
+
+
+devtools::load_all("/home/cmonzo/workspace/MOSim")
 suppressPackageStartupMessages({
   library(tidyverse)
   library(scater)
@@ -26,21 +36,19 @@ calculate_mean_per_list_df <- function(df, named_lists) {
   return(means_df)
 }
 
-set.seed(000)
-
 ### read the simulated dataset
 
-sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_6cells11clus8800_scMOSim_2groups_000.rds")
+sim <- readRDS(paste0("~/workspace/mosim_paper/sim_6cells8clus8000_scMOSim_2groups_", s, ".rds"))
 
 settings <- scOmicSettings(sim, TF = TRUE)
 cell_types <- sim$cellTypes
 
 ### SCALE USING ACORDE
 
-atac <- acorde::scale_isoforms(sim$Group_1$Rep_1$`sim_scATAC-seq`@counts, 
-                              isoform_col = NULL)
+rna <- acorde::scale_isoforms(sim$Group_1$Rep_1$`sim_scATAC-seq`@counts, 
+                                            isoform_col = NULL)
 
-atac[is.na(atac)] <- 0
+rna[is.na(rna)] <- 0
 
 ct <- tibble::tibble(Cell = colnames(sim$Group_2$Rep_1$`sim_scATAC-seq`@counts),
                      cell_type = rep(names(sim$cellTypes), times = lengths(sim$cellTypes)))
@@ -48,13 +56,13 @@ ct <- tibble::tibble(Cell = colnames(sim$Group_2$Rep_1$`sim_scATAC-seq`@counts),
 ### PLOT ORIGINAL CLUSTERS
 
 ## Extract clusters list to plot originals
-clusters_list <- settings$AssociationMatrix_Group_1[settings$AssociationMatrix_Group_1$Peak_cluster %in% c(1:11), c("Peak_ID", "Peak_cluster")]
+clusters_list <- settings$AssociationMatrix_Group_1[settings$AssociationMatrix_Group_1$Peak_cluster %in% c(1:8), c("Peak_ID", "Peak_cluster")]
 clusters_list <- split(clusters_list$Peak_ID, clusters_list$Peak_cluster)
 
 
 # compute average-by-cell type cluster patterns
 cluster_patterns <- map(clusters_list,
-                        ~acorde::calculate_cluster_profile(atac,
+                        ~acorde::calculate_cluster_profile(rna,
                                                            isoform_ids = .,
                                                            id_table = ct,
                                                            isoform_col = "transcript"))
@@ -64,28 +72,28 @@ theme_set(theme_cowplot())
 
 pattern_plots <- map(cluster_patterns,
                      plot_cluster_profile,
-                     ct_labels = c("CD16 Mono", "NK", "Treg", "cDC", "CD4 TEM", "Memory B"))
+                     ct_labels = c("CD16 Mono","CD4 TEM","cDC","Memory B","NK","Treg"))
 
 plot_grid(plotlist = pattern_plots, 
           labels = NULL, 
           ncol = 4)
-ggsave(paste0("~/workspace/1_conesalab/test_scMOSim/paper_plots/Supp_OriClusters_acordeScaled_ATAC.pdf"))
+ggsave(width = 8, height = 5, paste0("~/workspace/mosim_paper/paper_plots/", s, "_Supp_OriClusters_acordeScaled_ATAC.pdf"))
 
 ####### Clustering genes with acorde scaling, manhattan and kmedoids
 
 
-atac <- as.data.frame(atac)
-rownames(atac) <- atac$transcript
-atac$transcript <- NULL
+rna <- as.data.frame(rna)
+rownames(rna) <- rna$transcript
+rna$transcript <- NULL
 
-means_celltype_rna <- calculate_mean_per_list_df(atac, cell_types)
+means_celltype_rna <- calculate_mean_per_list_df(rna, cell_types)
 
-asocG2 <- sim$AssociationMatrices$AssociationMatrix_Group_2[sim$AssociationMatrices$AssociationMatrix_Group_2$Peak_cluster %in% c(1:11),]
+asocG2 <- sim$AssociationMatrices$AssociationMatrix_Group_2[sim$AssociationMatrices$AssociationMatrix_Group_2$Peak_cluster %in% c(1:8),]
 means_celltype_rna <- as.data.frame(means_celltype_rna[rownames(means_celltype_rna) %in% asocG2$Peak_ID,])
 
-# Cluster our 11 clusters of interest
+# Cluster our 8 clusters of interest
 rna_gower_dist <- cluster::daisy(means_celltype_rna, metric = "gower")
-rna_pam <- pam(rna_gower_dist, diss = TRUE, k = 11)
+rna_pam <- pam(rna_gower_dist, diss = TRUE, k = 8)
 
 pam_cluster <- as.data.frame(rna_pam$clustering)
 colnames(pam_cluster) <- c("pam_cluster")
@@ -121,13 +129,13 @@ rna_with_clust_info %>%
   theme_bw() +  
   theme(legend.position = "none" , axis.text.x = element_text(angle = 45 , vjust = 0.4)) +
   facet_wrap(~clust, ncol = 4)
-ggsave(paste0("~/workspace/1_conesalab/test_scMOSim/paper_plots/3A_G1_gowerPAM_acordeScaled_ATAC.pdf"))
+ggsave(width = 8, height = 4, paste0("~/workspace/mosim_paper/paper_plots/", s, "_3A_G1_gowerPAM_acordeScaled_ATAC.pdf"))
 
 
 ##### Plot scree of the medoids
 
 sil_width <- c(NA)
-
+ 
 for(i in 2:15){
   
   pam_fit <- pam(rna_gower_dist,
@@ -144,5 +152,6 @@ sil_width <- data.frame(
 
 ggplot(sil_width, aes(x = Position, y = Value)) + geom_point() + geom_line() +
   labs(x = "Number of medoids", y = "Pam average fit") + theme_classic()
-ggsave(width = 3, height = 2, filename = "~/workspace/1_conesalab/test_scMOSim/paper_plots/Kmedoids_scree_ATAC.pdf")
-
+  
+ggsave(width = 3, height = 2, filename = paste0("~/workspace/mosim_paper/paper_plots/", s, "_Kmedoids_scree_ATAC.pdf"))
+print("Done")
