@@ -12,7 +12,7 @@ library(pbmcMultiome.SeuratData)
 
 set.seed(000)
 
-sim <- readRDS("~/workspace/mosim_paper/sim_6cells11clus8800_scMOSim_2groups_000.rds")
+sim <- readRDS("~/workspace/mosim_paper/sim_6cells8clus8000_scMOSim_2groups_022.rds")
 
 numcells <- "ATAC"
 
