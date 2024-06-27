@@ -19,7 +19,7 @@ library(pbmcMultiome.SeuratData)
 
 set.seed(000)
 
-sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_6cells8clus8000_scMOSim_2groups_022.rds")
+#sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_6cells8clus8000_scMOSim_2groups_022.rds")
 
 ## Plotting big sample
 #sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_scMOSim_few_2602.rds")
@@ -42,6 +42,13 @@ rownames(rna) <- rna$transcript
 rna$transcript <- NULL
 rownames(atac) <- atac$transcript
 atac$transcript <- NULL
+
+#####################
+## Testing without scaling
+rna <- as.data.frame(log2(sim$Group_1$Rep_1$`sim_scRNA-seq`@counts +1))
+atac<- as.data.frame(log2(sim$Group_1$Rep_1$`sim_scATAC-seq`@counts +1))
+
+## Not sure what is the best approach.
 
 asocG2 <- sim$AssociationMatrices$AssociationMatrix_Group_2[sim$AssociationMatrices$AssociationMatrix_Group_2$Peak_cluster %in% c(1:11),]
 asocG2 <- asocG2[asocG2$Gene_cluster %in% c(1:11),]
@@ -105,7 +112,7 @@ correlation_df <- correlation_df[, colSums(is.na(correlation_df)) != nrow(correl
 # Wide to long
 correlation_df$Gene_ID <- row.names(correlation_df)
 
-long_trues <- correlation_df %>% pivot_longer(!Gene_ID, names_to = "Peak_ID", values_to = "cors")
+long_trues <- correlation_df %>% tidyr::pivot_longer(!Gene_ID, names_to = "Peak_ID", values_to = "cors")
 
 # Bring the cluster names
 long_trues <- merge(long_trues, asocG2[, c("Gene_ID", "Gene_cluster")], by = c("Gene_ID"))
@@ -114,3 +121,4 @@ long_trues <- merge(long_trues, asocG2[, c("Peak_ID", "Peak_cluster")], by = c("
 # Keep only those that belong to the same cluster or opposite.
 trues1 <- long_trues[long_trues$Gene_cluster==long_trues$Peak_cluster, ]
 
+trues2 <- merge(long_trues, asocG2[, c("Gene_ID", "Peak_ID")], by = c("Gene_ID", "Peak_ID"))

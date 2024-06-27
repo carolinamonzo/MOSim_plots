@@ -79,7 +79,7 @@ plot_grid(plotlist = pattern_plots,
           ncol = 4)
 ggsave(width = 8, height = 5, paste0("~/workspace/mosim_paper/paper_plots/", s, "_Supp_OriClusters_acordeScaled_ATAC.pdf"))
 
-####### Clustering genes with acorde scaling, manhattan and kmedoids
+####### Clustering genes with acorde scaling, kendall and kmedoids
 
 
 rna <- as.data.frame(rna)
@@ -91,9 +91,12 @@ means_celltype_rna <- calculate_mean_per_list_df(rna, cell_types)
 asocG2 <- sim$AssociationMatrices$AssociationMatrix_Group_2[sim$AssociationMatrices$AssociationMatrix_Group_2$Peak_cluster %in% c(1:8),]
 means_celltype_rna <- as.data.frame(means_celltype_rna[rownames(means_celltype_rna) %in% asocG2$Peak_ID,])
 
+means_celltype_rna[is.na(means_celltype_rna)] <- 0
 # Cluster our 8 clusters of interest
-rna_gower_dist <- cluster::daisy(means_celltype_rna, metric = "gower")
-rna_pam <- pam(rna_gower_dist, diss = TRUE, k = 8)
+rna_kendall_dist <- cor(t(means_celltype_rna), method = "kendall")
+rna_kendall_dist[is.na(rna_kendall_dist)] <- 0
+
+rna_pam <- pam(rna_kendall_dist, diss = TRUE, k = 8)
 
 pam_cluster <- as.data.frame(rna_pam$clustering)
 colnames(pam_cluster) <- c("pam_cluster")

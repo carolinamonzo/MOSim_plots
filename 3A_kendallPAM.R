@@ -48,6 +48,9 @@ cell_types <- sim$cellTypes
 rna <- acorde::scale_isoforms(sim$Group_1$Rep_1$`sim_scRNA-seq`@counts, 
                                             isoform_col = NULL)
 
+rna <- acorde::scale_isoforms(rna, 
+                              isoform_col = NULL)
+
 rna[is.na(rna)] <- 0
 
 ct <- tibble::tibble(Cell = colnames(sim$Group_2$Rep_1$`sim_scRNA-seq`@counts),
@@ -77,10 +80,9 @@ pattern_plots <- map(cluster_patterns,
 plot_grid(plotlist = pattern_plots, 
           labels = NULL, 
           ncol = 4)
-ggsave(width = 8, height = 5, paste0("~/workspace/mosim_paper/paper_plots/", s, "_Supp_OriClusters_acordeScaled.pdf"))
+ggsave(width = 8, height = 5, paste0("~/workspace/1_conesalab/test_scMOSim/paper_plots/", s, "_Supp_OriClusters_acordeScaled.pdf"))
 
-####### Clustering genes with acorde scaling, manhattan and kmedoids
-
+####### Clustering genes with acorde scaling, kendall and kmedoids
 
 rna <- as.data.frame(rna)
 rownames(rna) <- rna$transcript
@@ -88,12 +90,16 @@ rna$transcript <- NULL
 
 means_celltype_rna <- calculate_mean_per_list_df(rna, cell_types)
 
-asocG2 <- sim$AssociationMatrices$AssociationMatrix_Group_2[sim$AssociationMatrices$AssociationMatrix_Group_2$Gene_cluster %in% c(1:8),]
+asocG2 <- sim$AssociationMatrices$AssociationMatrix_Group_1[sim$AssociationMatrices$AssociationMatrix_Group_1$Gene_cluster %in% c(1:8),]
 means_celltype_rna <- as.data.frame(means_celltype_rna[rownames(means_celltype_rna) %in% asocG2$Gene_ID,])
 
-# Cluster our 8 clusters of interest
-rna_gower_dist <- cluster::daisy(means_celltype_rna, metric = "gower")
-rna_pam <- pam(rna_gower_dist, diss = TRUE, k = 8)
+# Calculate correlation
+
+rna_kendall_dist <- stats::cor(t(means_celltype_rna), method = "kendall")
+# Transforming correlation into distance
+rna_kendall_dist <- 1- rna_kendall_dist
+
+rna_pam <- cluster::pam(rna_kendall_dist, diss = TRUE, k = 8)
 
 pam_cluster <- as.data.frame(rna_pam$clustering)
 colnames(pam_cluster) <- c("pam_cluster")
@@ -129,7 +135,7 @@ rna_with_clust_info %>%
   theme_bw() +  
   theme(legend.position = "none" , axis.text.x = element_text(angle = 45 , vjust = 0.4)) +
   facet_wrap(~clust, ncol = 4)
-ggsave(width = 8, height = 4, paste0("~/workspace/mosim_paper/paper_plots/", s, "_3A_G1_gowerPAM_acordeScaled.pdf"))
+ggsave(width = 8, height = 4, paste0("~/workspace/1_conesalab/test_scMOSim/paper_plots/", s, "_3A_G1_kendallPAM_acordeScaled.pdf"))
 
 
 ##### Plot scree of the medoids
@@ -138,7 +144,7 @@ sil_width <- c(NA)
  
 for(i in 2:15){
   
-  pam_fit <- pam(rna_gower_dist,
+  pam_fit <- pam(rna_kendall_dist,
                  diss = TRUE,
                  k = i)
   
@@ -153,5 +159,5 @@ sil_width <- data.frame(
 ggplot(sil_width, aes(x = Position, y = Value)) + geom_point() + geom_line() +
   labs(x = "Number of medoids", y = "Pam average fit") + theme_classic()
   
-ggsave(width = 3, height = 2, filename = paste0("~/workspace/mosim_paper/paper_plots/", s, "_Kmedoids_scree.pdf"))
+ggsave(width = 3, height = 2, filename = paste0("~/workspace/1_conesalab/test_scMOSim/paper_plots/", s, "_Kmedoids_scree.pdf"))
 print("Done")
