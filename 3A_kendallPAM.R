@@ -9,7 +9,7 @@ s <- args$seed
 set.seed(s)
 
 
-devtools::load_all("/home/cmonzo/workspace/MOSim")
+devtools::load_all("~/workspace/1_conesalab/MOSim/")
 suppressPackageStartupMessages({
   library(tidyverse)
   library(scater)
@@ -38,33 +38,31 @@ calculate_mean_per_list_df <- function(df, named_lists) {
 
 ### read the simulated dataset
 
-sim <- readRDS(paste0("~/workspace/mosim_paper/sim_6cells8clus8000_scMOSim_2groups_", s, ".rds"))
+sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_6cells8clus1600_scMOSim_2groups_000.rds")
 
 settings <- scOmicSettings(sim, TF = TRUE)
+
 cell_types <- sim$cellTypes
 
 ### SCALE USING ACORDE
 
 rna <- acorde::scale_isoforms(sim$Group_1$Rep_1$`sim_scRNA-seq`@counts, 
-                                            isoform_col = NULL)
-
-rna <- acorde::scale_isoforms(rna, 
                               isoform_col = NULL)
 
 rna[is.na(rna)] <- 0
 
-ct <- tibble::tibble(Cell = colnames(sim$Group_2$Rep_1$`sim_scRNA-seq`@counts),
+ct <- tibble::tibble(Cell = colnames(sim$Group_1$Rep_1$`sim_scRNA-seq`@counts),
                      cell_type = rep(names(sim$cellTypes), times = lengths(sim$cellTypes)))
 
 ### PLOT ORIGINAL CLUSTERS
 
 ## Extract clusters list to plot originals
-clusters_list <- settings$AssociationMatrix_Group_1[settings$AssociationMatrix_Group_1$Gene_cluster %in% c(1:8), c("Gene_ID", "Gene_cluster")]
+clusters_list <- sim$AssociationMatrices$AssociationMatrix_Group_1[sim$AssociationMatrices$AssociationMatrix_Group_1$Gene_cluster %in% c(1:8), c("Gene_ID", "Gene_cluster")]
 clusters_list <- split(clusters_list$Gene_ID, clusters_list$Gene_cluster)
 
 
 # compute average-by-cell type cluster patterns
-cluster_patterns <- map(clusters_list,
+cluster_patterns <- purrr::map(clusters_list,
                         ~acorde::calculate_cluster_profile(rna,
                                                            isoform_ids = .,
                                                            id_table = ct,
@@ -73,14 +71,12 @@ cluster_patterns <- map(clusters_list,
 
 theme_set(theme_cowplot())
 
-pattern_plots <- map(cluster_patterns,
-                     plot_cluster_profile,
-                     ct_labels = c("CD16 Mono","CD4 TEM","cDC","Memory B","NK","Treg"))
+pattern_plots <- purrr::map(cluster_patterns, plot_cluster_profile, ct_labels = cluster_patterns$`1`$cell_type)
 
 plot_grid(plotlist = pattern_plots, 
           labels = NULL, 
           ncol = 4)
-ggsave(width = 8, height = 5, paste0("~/workspace/1_conesalab/test_scMOSim/paper_plots/", s, "_Supp_OriClusters_acordeScaled.pdf"))
+ggsave(width = 8, height = 5, paste0("~/workspace/1_conesalab/test_scMOSim/paper_plots/", s, "_Supp_OriClusters_acordeScaled_RNA.pdf"))
 
 ####### Clustering genes with acorde scaling, kendall and kmedoids
 
@@ -90,16 +86,15 @@ rna$transcript <- NULL
 
 means_celltype_rna <- calculate_mean_per_list_df(rna, cell_types)
 
-asocG2 <- sim$AssociationMatrices$AssociationMatrix_Group_1[sim$AssociationMatrices$AssociationMatrix_Group_1$Gene_cluster %in% c(1:8),]
+asocG2 <- sim$AssociationMatrices$AssociationMatrix_Group_3[sim$AssociationMatrices$AssociationMatrix_Group_1$Gene_cluster %in% c(1:6),]
 means_celltype_rna <- as.data.frame(means_celltype_rna[rownames(means_celltype_rna) %in% asocG2$Gene_ID,])
 
-# Calculate correlation
-
+means_celltype_rna[is.na(means_celltype_rna)] <- 0
+# Cluster our 8 clusters of interest
 rna_kendall_dist <- stats::cor(t(means_celltype_rna), method = "kendall")
-# Transforming correlation into distance
-rna_kendall_dist <- 1- rna_kendall_dist
+rna_kendall_dist[is.na(rna_kendall_dist)] <- 0
 
-rna_pam <- cluster::pam(rna_kendall_dist, diss = TRUE, k = 8)
+rna_pam <- cluster::pam(1 - rna_kendall_dist, diss = TRUE, k = 6)
 
 pam_cluster <- as.data.frame(rna_pam$clustering)
 colnames(pam_cluster) <- c("pam_cluster")

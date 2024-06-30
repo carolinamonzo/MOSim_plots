@@ -21,6 +21,7 @@ cell_types <- list('Treg' = c(1:10),'cDC' = c(11:20),'CD4_TEM' = c(21:30),
 sim <- scMOSim(omicsList, cell_types, numberReps = 5, numberGroups = 3,
                diffGenes = list(c(0.3, 0.2), c(0.1, 0.4)), noiseRep = 0.1,
                noiseGroup = 0.3, clusters = 6,
-               regulatorEffect = list(c(0.2, 0.1), c(0.1, 0.3), c(0.1, 0.2)))
+               regulatorEffect = list(c(0.2, 0.1), c(0.1, 0.1), c(0.1, 0.2)),
+               TF = TRUE)
 
 saveRDS(object = sim, file = '~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_scMOSim_few_2602.rds')

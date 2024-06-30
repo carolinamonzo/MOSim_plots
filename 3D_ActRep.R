@@ -9,6 +9,7 @@ suppressPackageStartupMessages({
 set.seed(000)
 
 sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_6cells8clus8000_scMOSim_2groups_022.rds")
+sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_6cells8clus1600_scMOSim_2groups_222.rds")
 
 cell_types <- sim$cellTypes
 associationMatrix <- sim$AssociationMatrices$AssociationMatrix_Group_2
@@ -36,6 +37,14 @@ mat_orange3 <- res3$rna
 mat_green1 <- res1$atac
 mat_green2 <- res2$atac
 mat_green3 <- res3$atac
+
+mat_orange1 <- sim$Group_2$Rep_1$`sim_scRNA-seq`$counts
+mat_orange2 <- sim$Group_2$Rep_2$`sim_scRNA-seq`$counts
+mat_orange3 <- sim$Group_2$Rep_3$`sim_scRNA-seq`$counts
+
+mat_green1 <- sim$Group_2$Rep_1$`sim_scATAC-seq`$counts
+mat_green2 <- sim$Group_2$Rep_2$`sim_scATAC-seq`$counts
+mat_green3 <- sim$Group_2$Rep_3$`sim_scATAC-seq`$counts
 
 # Vector indicating cell types
 cell_type_vector <- rep(names(sim$cellTypes), times = lengths(sim$cellTypes))
@@ -66,8 +75,8 @@ agg_orange_combined <- combine_replicates(agg_orange1, agg_orange2, agg_orange3)
 agg_green_combined <- combine_replicates(agg_green1, agg_green2, agg_green3)
 
 # Select specific gene and peak
-selected_gene <- "RBP7"
-selected_peak <- "chr3-101753518-101753798"
+selected_gene <- "CYB5RL"
+selected_peak <- "chr9-107963188-107963693"
 agg_orange_selected <- data.frame(
   CellType = colnames(agg_orange_combined$mean), 
   Mean = agg_orange_combined$mean[selected_gene, ], 

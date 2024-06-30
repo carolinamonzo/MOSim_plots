@@ -38,7 +38,7 @@ calculate_mean_per_list_df <- function(df, named_lists) {
 
 ### read the simulated dataset
 
-sim <- readRDS(paste0("~/workspace/mosim_paper/sim_6cells8clus8000_scMOSim_2groups_", s, ".rds"))
+sim <- readRDS("~/workspace/1_conesalab/test_scMOSim/paper_plots/sim_6cells8clus1600_scMOSim_2groups_222.rds")
 
 settings <- scOmicSettings(sim, TF = TRUE)
 cell_types <- sim$cellTypes
@@ -50,7 +50,7 @@ rna <- acorde::scale_isoforms(sim$Group_1$Rep_1$`sim_scATAC-seq`@counts,
 
 rna[is.na(rna)] <- 0
 
-ct <- tibble::tibble(Cell = colnames(sim$Group_2$Rep_1$`sim_scATAC-seq`@counts),
+ct <- tibble::tibble(Cell = colnames(sim$Group_1$Rep_1$`sim_scATAC-seq`@counts),
                      cell_type = rep(names(sim$cellTypes), times = lengths(sim$cellTypes)))
 
 ### PLOT ORIGINAL CLUSTERS
@@ -72,7 +72,7 @@ theme_set(theme_cowplot())
 
 pattern_plots <- map(cluster_patterns,
                      plot_cluster_profile,
-                     ct_labels = c("CD16 Mono","CD4 TEM","cDC","Memory B","NK","Treg"))
+                     ct_labels = cluster_patterns$`1`$cell_type)
 
 plot_grid(plotlist = pattern_plots, 
           labels = NULL, 
@@ -88,7 +88,7 @@ rna$transcript <- NULL
 
 means_celltype_rna <- calculate_mean_per_list_df(rna, cell_types)
 
-asocG2 <- sim$AssociationMatrices$AssociationMatrix_Group_2[sim$AssociationMatrices$AssociationMatrix_Group_2$Peak_cluster %in% c(1:8),]
+asocG2 <- sim$AssociationMatrices$AssociationMatrix_Group_1[sim$AssociationMatrices$AssociationMatrix_Group_1$Peak_cluster %in% c(1:6),]
 means_celltype_rna <- as.data.frame(means_celltype_rna[rownames(means_celltype_rna) %in% asocG2$Peak_ID,])
 
 means_celltype_rna[is.na(means_celltype_rna)] <- 0
@@ -96,7 +96,7 @@ means_celltype_rna[is.na(means_celltype_rna)] <- 0
 rna_kendall_dist <- cor(t(means_celltype_rna), method = "kendall")
 rna_kendall_dist[is.na(rna_kendall_dist)] <- 0
 
-rna_pam <- pam(rna_kendall_dist, diss = TRUE, k = 8)
+rna_pam <- pam(1 - rna_kendall_dist, diss = TRUE, k = 6)
 
 pam_cluster <- as.data.frame(rna_pam$clustering)
 colnames(pam_cluster) <- c("pam_cluster")
@@ -132,7 +132,7 @@ rna_with_clust_info %>%
   theme_bw() +  
   theme(legend.position = "none" , axis.text.x = element_text(angle = 45 , vjust = 0.4)) +
   facet_wrap(~clust, ncol = 4)
-ggsave(width = 8, height = 4, paste0("~/workspace/mosim_paper/paper_plots/", s, "_3A_G1_gowerPAM_acordeScaled_ATAC.pdf"))
+ggsave(width = 8, height = 4, paste0("~/workspace/mosim_paper/paper_plots/", s, "_3A_G1_kendallPAM_acordeScaled_ATAC.pdf"))
 
 
 ##### Plot scree of the medoids
