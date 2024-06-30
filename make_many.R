@@ -70,7 +70,8 @@ for (char in unique(cellnames)){
 
 sim <- scMOSim(omicsList, cell_types, numberReps = 3, numberGroups = 2,
                diffGenes = list(c(0.3, 0.2)), noiseRep = 0.1,
-               noiseGroup = 0.3, clusters = 8, feature_no = 8000,
+               noiseGroup = 0.3, clusters = 8, feature_no = 10000,
                regulatorEffect = list(c(0.2, 0.1), c(0.1, 0.2)), TF = TRUE)
 
-saveRDS(object = sim, file = paste0('~/workspace/mosim_paper/sim_6cells8clus8000_scMOSim_2groups_', s, '.rds'))
+
+saveRDS(object = sim, file = paste0('~/workspace/mosim_paper/sim_6cells8clus10000_scMOSim_2groups_', s, '.rds'))
